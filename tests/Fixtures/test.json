@@ -1,0 +1,14 @@
+{
+  "questions": [
+    {
+      "id": "q_1",
+      "text": "What is the capital of France?",
+      "options": ["Berlin", "London", "Paris", "Madrid"]
+    },
+    {
+      "id": "q_2",
+      "text": "What is 2 + 2?",
+      "options": ["3", "4", "5", "6"]
+    }
+  ]
+}

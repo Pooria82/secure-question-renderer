@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Strategies;
 
 use App\Exceptions\InputValidationException;
-use PhpOffice\PhpWord\IOFactory;
 use Throwable;
+use ZipArchive;
 
 class WordQuestionParser implements QuestionParserInterface
 {
@@ -24,27 +24,14 @@ class WordQuestionParser implements QuestionParserInterface
         }
 
         try {
-            $phpWord = IOFactory::load($input);
+            $text = $this->extractTextFromDocx($input);
+            $lines = explode("\n", $text);
+            
             $questions = [];
             $currentQuestion = null;
 
-            foreach ($phpWord->getSections() as $section) {
-                foreach ($section->getElements() as $element) {
-                    if (method_exists($element, 'getText')) {
-                        $text = trim($element->getText());
-                        $this->processTextLine($text, $questions, $currentQuestion);
-                    } elseif (method_exists($element, 'getElements')) {
-                        // Handle TextRun
-                        $combinedText = '';
-                        foreach ($element->getElements() as $subElement) {
-                            if (method_exists($subElement, 'getText')) {
-                                $combinedText .= $subElement->getText();
-                            }
-                        }
-                        $text = trim($combinedText);
-                        $this->processTextLine($text, $questions, $currentQuestion);
-                    }
-                }
+            foreach ($lines as $line) {
+                $this->processTextLine(trim($line), $questions, $currentQuestion);
             }
 
             if ($currentQuestion !== null) {
@@ -61,6 +48,24 @@ class WordQuestionParser implements QuestionParserInterface
         } catch (Throwable $e) {
             throw new InputValidationException('Failed to parse Word document: ' . $e->getMessage(), 0, $e);
         }
+    }
+
+    private function extractTextFromDocx(string $path): string
+    {
+        $zip = new ZipArchive();
+        if ($zip->open($path) === true) {
+            $content = $zip->getFromName('word/document.xml');
+            $zip->close();
+
+            if ($content !== false) {
+                // Replace paragraphs with newlines
+                $content = str_replace('</w:p>', "\n", $content);
+                // Strip all XML tags
+                $text = strip_tags($content);
+                return $text;
+            }
+        }
+        throw new \Exception('Could not read word/document.xml from docx archive.');
     }
 
     private function processTextLine(string $text, array &$questions, ?array &$currentQuestion): void
