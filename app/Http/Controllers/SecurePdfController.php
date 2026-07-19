@@ -36,24 +36,26 @@ class SecurePdfController extends Controller
         $file = $request->file('file');
         $extension = strtolower($file->getClientOriginalExtension());
 
-        // Select strategy
-        if ($extension === 'json') {
-            $parser = new JsonQuestionParser();
-            $input = file_get_contents($file->getRealPath());
-        } elseif (in_array($extension, ['doc', 'docx'])) {
-            $parser = new WordQuestionParser();
-            $input = $file->getRealPath();
-        } else {
-            return response()->json(['error' => 'Unsupported file format.'], 400);
-        }
-
         try {
-            $processor = new QuestionProcessingService($parser);
-            $questions = $processor->process($input);
-
-            // Dispatch generation
             $outputFilename = 'secure_exam_' . time() . '.pdf';
-            $batchId = $this->pdfService->generate($questions, $outputFilename);
+
+            if ($extension === 'json') {
+                $parser = new JsonQuestionParser();
+                $input = file_get_contents($file->getRealPath());
+                $processor = new QuestionProcessingService($parser);
+                $questions = $processor->process($input);
+                $batchId = $this->pdfService->generate($questions, $outputFilename);
+            } elseif (in_array($extension, ['doc', 'docx'])) {
+                // Store file securely since queue worker needs it after request terminates
+                $path = $file->storeAs('private/uploads', uniqid('docx_') . '.' . $extension, 'local');
+                $absolutePath = storage_path('app/' . $path);
+                
+                // visual rendering for exact replica
+                $visualService = app(\App\Services\VisualPdfGenerationService::class);
+                $batchId = $visualService->generate($absolutePath, $outputFilename);
+            } else {
+                return response()->json(['error' => 'Unsupported file format.'], 400);
+            }
 
             return response()->json([
                 'message' => 'Secure PDF generation has started.',

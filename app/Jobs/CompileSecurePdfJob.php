@@ -36,6 +36,9 @@ class CompileSecurePdfJob implements ShouldQueue
         $disk = Storage::disk('local');
         $directoryPath = $this->tempDir;
 
+        // Dynamically increase memory limit for PDF compilation
+        ini_set('memory_limit', '1024M');
+
         try {
             $files = $disk->files($directoryPath);
             
