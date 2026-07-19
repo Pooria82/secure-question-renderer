@@ -34,7 +34,7 @@ class WordQuestionParser implements QuestionParserInterface
                 $this->processTextLine(trim($line), $questions, $currentQuestion);
             }
 
-            if ($currentQuestion !== null) {
+            if ($currentQuestion !== null && count($currentQuestion['options']) >= 2) {
                 $questions[] = $currentQuestion;
             }
 
@@ -74,10 +74,14 @@ class WordQuestionParser implements QuestionParserInterface
             return;
         }
 
-        // Heuristic: if it matches a number followed by a dot, it's a question.
-        if (preg_match('/^\d+[\.\)]\s+(.*)/', $text, $matches)) {
+        // Detect Question: number followed by hyphen or dot (e.g., "36- ", "1. ")
+        // We explicitly exclude ")" here to avoid matching options like "1)"
+        if (preg_match('/^\d+\s*[-\.]\s+(.*)/', $text, $matches)) {
             if ($currentQuestion !== null) {
-                $questions[] = $currentQuestion;
+                // Only add if it has options, otherwise it might be a false positive
+                if (count($currentQuestion['options']) >= 2) {
+                    $questions[] = $currentQuestion;
+                }
             }
             $currentQuestion = [
                 'id' => uniqid('q_'),
@@ -85,10 +89,18 @@ class WordQuestionParser implements QuestionParserInterface
                 'options' => [],
             ];
         } elseif ($currentQuestion !== null) {
-            // Assume it's an option. Remove typical prefixes like A., b), -, etc.
-            $cleanOption = trim(preg_replace('/^([a-zA-Z][\.\)]|[-])\s+/', '', $text));
-            if (!empty($cleanOption)) {
-                $currentQuestion['options'][] = $cleanOption;
+            // Detect Option: "1)", "2)", "A.", "الف)"
+            if (preg_match('/^(\d+[\)]|[a-zA-Zپچجحخعغفقثصضشسیبلاتنمکگوء][\.\)])\s+(.*)/u', $text, $matches)) {
+                $cleanOption = trim($matches[2]);
+                if (!empty($cleanOption)) {
+                    $currentQuestion['options'][] = $cleanOption;
+                }
+            } else {
+                // If it's not a new option, it could be a continuation of the question text
+                // or part of the answer/explanation (which we ignore if options already exist).
+                if (empty($currentQuestion['options'])) {
+                    $currentQuestion['text'] .= "\n" . trim($text);
+                }
             }
         }
     }

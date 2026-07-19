@@ -54,7 +54,7 @@ class RenderSecureQuestionImageJob implements ShouldQueue
             $imagePath = storage_path('app/private/' . $this->tempDir . '/' . $this->filename);
             
             // Ensure directory exists
-            Storage::disk('local')->makeDirectory('private/' . $this->tempDir);
+            Storage::disk('local')->makeDirectory($this->tempDir);
 
             Browsershot::html($html)
                 ->noSandbox()
@@ -66,7 +66,7 @@ class RenderSecureQuestionImageJob implements ShouldQueue
 
             // 3. Apply Anti-OCR techniques using Intervention Image
             $manager = new ImageManager(new Driver());
-            $image = $manager->read($imagePath);
+            $image = $manager->decodePath($imagePath);
 
             // Add aggressive noise (pixelation/blur equivalent or manual noise)
             // Intervention v3 allows pixelate, blur, or writing text.
@@ -75,9 +75,7 @@ class RenderSecureQuestionImageJob implements ShouldQueue
             // Add diagonal semi-transparent watermark
             $image->text('CONFIDENTIAL - SECURE EXAM', 512, 384, function ($font) {
                 // We use default font since TTF path might vary
-                $font->color([255, 0, 0, 0.15]); // Semi-transparent red
-                $font->align('center');
-                $font->valign('middle');
+                $font->color('rgba(255, 0, 0, 0.15)'); // Semi-transparent red
                 $font->size(60);
                 $font->angle(45);
             });
@@ -87,7 +85,7 @@ class RenderSecureQuestionImageJob implements ShouldQueue
                 $image->drawLine(function($line) {
                     $line->from(rand(0, 1024), rand(0, 768));
                     $line->to(rand(0, 1024), rand(0, 768));
-                    $line->color([150, 150, 150, 0.2]); // faint gray lines
+                    $line->color('rgba(150, 150, 150, 0.2)'); // faint gray lines
                     $line->width(rand(1, 3));
                 });
             }

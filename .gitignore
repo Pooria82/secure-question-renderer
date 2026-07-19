@@ -33,3 +33,5 @@ Thumbs.db
 
 # Puppeteer cache
 .puppeteer-cache/
+
+/storage/app/public/e2e-results/

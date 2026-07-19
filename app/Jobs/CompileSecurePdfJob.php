@@ -10,7 +10,6 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Storage;
-use Mpdf\Mpdf;
 use Throwable;
 
 class CompileSecurePdfJob implements ShouldQueue
@@ -35,7 +34,7 @@ class CompileSecurePdfJob implements ShouldQueue
     public function handle(): void
     {
         $disk = Storage::disk('local');
-        $directoryPath = 'private/' . $this->tempDir;
+        $directoryPath = $this->tempDir;
 
         try {
             $files = $disk->files($directoryPath);
@@ -47,7 +46,7 @@ class CompileSecurePdfJob implements ShouldQueue
             // Ensure consistent ordering based on filename/question ID if necessary
             sort($files);
 
-            $mpdf = new Mpdf([
+            $mpdf = new \Mpdf\Mpdf([
                 'format' => 'A4',
                 'margin_left' => 10,
                 'margin_right' => 10,
@@ -75,7 +74,7 @@ class CompileSecurePdfJob implements ShouldQueue
 
             // Save PDF securely
             $pdfOutputPath = storage_path('app/private/secure_pdfs/' . $this->outputFilename);
-            $disk->makeDirectory('private/secure_pdfs');
+            $disk->makeDirectory('secure_pdfs');
             $mpdf->Output($pdfOutputPath, \Mpdf\Output\Destination::FILE);
 
         } catch (Throwable $e) {
