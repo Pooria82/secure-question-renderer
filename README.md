@@ -1,58 +1,71 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Secure Question Renderer
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+An enterprise-grade, secure, and scalable backend solution for converting question sets (from JSON or Word documents) into aggressively protected, anti-OCR PDF files. This project is built primarily to defend the intellectual property of sensitive question banks.
 
-## About Laravel
+## Quick Start (Docker Environment)
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
-
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+We provide a production-ready, fully containerized Docker environment equipped with PHP 8.3, Node.js, Puppeteer, and all the OS-level dependencies required for Headless Chrome rendering. You do not need to install Chrome or Node.js on your host machine.
 
 ```bash
-composer require laravel/boost --dev
+# 1. Clone the repository
+git clone https://github.com/Pooria82/secure-question-renderer.git
+cd secure-question-renderer
 
-php artisan boost:install
+# 2. Start the Docker containers (App, Nginx, Queue Worker)
+docker-compose up -d --build
+
+# 3. Install composer dependencies (inside container)
+docker-compose exec app composer install
+
+# 4. Copy environment file and generate key
+docker-compose exec app cp .env.example .env
+docker-compose exec app php artisan key:generate
+
+# 5. Run database migrations (SQLite is pre-configured)
+docker-compose exec app php artisan migrate
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Your API is now available on `http://localhost:8000`.
 
-## Contributing
+---
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## System Architecture
 
-## Code of Conduct
+This application strictly enforces **SOLID principles** and utilizes a **Service-Oriented Architecture (SOA)** to keep controllers lean and business logic decoupled, reusable, and heavily tested.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### Strategy Pattern for Input Parsing
+To accommodate varying file uploads, we've implemented the **Strategy Pattern** for input handling.
+- `QuestionParserInterface` acts as the uniform contract.
+- `JsonQuestionParser` and `WordQuestionParser` encapsulate the unique extraction algorithms.
+- Adding a new parser (e.g., CSV) requires zero modification to the core `QuestionProcessingService`, abiding by the Open/Closed Principle.
 
-## Security Vulnerabilities
+---
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Security Measures (Anti-OCR)
 
-## License
+The primary goal of this application is to thwart optical character recognition (OCR) and text extraction techniques. We implement security at two distinct layers:
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### 1. Image Level (Intervention Image)
+Each extracted question is rendered cleanly via a Laravel Blade view. Using Spatie Browsershot, the HTML is converted to a pixel-perfect image. Before saving, Intervention Image applies:
+- **Visual Noise & Pixelation**: Subtly disrupts edge-detection algorithms used by OCR without impacting human readability.
+- **Diagonal Watermarks**: Imposes a semi-transparent, angled text layer ("CONFIDENTIAL - SECURE EXAM") across the image body.
+- **Interfering Lines**: Randomly generated line artifacts are drawn across the image, breaking the structural layout of the words for AI parsers.
+
+### 2. Document Level (mPDF)
+When compiling the final PDF, we enforce strict document-level locking via `mPDF->SetProtection(['print', 'print-highres'])`. This explicitly disables:
+- Text Selection and Copying
+- Document Modification
+- Programmatic Text Extraction
+
+---
+
+## Performance & Scalability
+
+Rendering HTML to Images via Headless Chrome is extremely resource-intensive. Executing this synchronously would inevitably cause API timeouts.
+
+To ensure enterprise-grade reliability, we utilize **Laravel Job Batching**:
+1. Upon upload, the file is parsed and a batch of isolated `RenderSecureQuestionImageJob`s are dispatched to the Queue.
+2. Background workers process these images concurrently. This allows for **horizontal scaling**—simply spawn more Queue workers to handle higher loads.
+3. Once the batch entirely completes, the `then()` callback executes a final `CompileSecurePdfJob` to stitch the images into the secure PDF and rigorously clean up the temporary directory.
+
+This architecture guarantees a fast HTTP response (`202 Accepted`) and delegates heavy lifting to resilient, scalable background processes.
