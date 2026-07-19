@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: secure-question-renderer-app
+    container_name: app
+    restart: unless-stopped
+    tty: true
+    environment:
+      - APP_ENV=${APP_ENV:-production}
+    working_dir: /var/www
+    volumes:
+      - ./:/var/www
+      - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    networks:
+      - app-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "8000:80"
+    volumes:
+      - ./:/var/www
+      - ./docker/nginx/conf.d/:/etc/nginx/conf.d/
+    networks:
+      - app-network
+    depends_on:
+      - app
+
+  queue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: queue
+    restart: unless-stopped
+    command: php artisan queue:work --sleep=3 --tries=3
+    volumes:
+      - ./:/var/www
+    networks:
+      - app-network
+    depends_on:
+      - app
+
+networks:
+  app-network:
+    driver: bridge
