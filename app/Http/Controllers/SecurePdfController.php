@@ -39,8 +39,8 @@ class SecurePdfController extends Controller
             $outputFilename = 'secure_exam_' . time() . '.pdf';
 
             // Store file securely since queue worker/parser needs it after request terminates
-            $path = $file->storeAs('private/uploads', uniqid('file_') . '.' . $extension, 'local');
-            $absolutePath = storage_path('app/' . $path);
+            $path = $file->storeAs('uploads', uniqid('file_') . '.' . $extension, 'local');
+            $absolutePath = Storage::disk('local')->path($path);
 
             $parser = match($extension) {
                 'json' => new JsonQuestionParser(),
