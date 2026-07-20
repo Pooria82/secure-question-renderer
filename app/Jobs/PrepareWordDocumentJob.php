@@ -40,29 +40,22 @@ class PrepareWordDocumentJob implements ShouldQueue
         $tempDirPath = storage_path('app/private/' . $this->tempDir);
         $disk->makeDirectory($this->tempDir);
 
-        // 1. Convert DOCX to PDF using LibreOffice
-        $process = new Process([
-            'soffice',
-            '--headless',
-            '--convert-to',
-            'pdf',
-            $this->inputPath,
-            '--outdir',
-            $tempDirPath
-        ], null, ['HOME' => '/tmp']);
-        $process->setTimeout(300);
-        $process->run();
-
-        if (!$process->isSuccessful()) {
-            throw new RenderFailureException('LibreOffice conversion failed: ' . $process->getErrorOutput());
-        }
-
-        // Get the generated PDF filename
+        // 1. Convert DOCX to PDF using Gotenberg API
         $filename = pathinfo($this->inputPath, PATHINFO_FILENAME) . '.pdf';
         $pdfPath = $tempDirPath . '/' . $filename;
 
+        $response = \Illuminate\Support\Facades\Http::attach(
+            'files', file_get_contents($this->inputPath), basename($this->inputPath)
+        )->post('http://gotenberg:3000/forms/libreoffice/convert');
+
+        if ($response->successful()) {
+            file_put_contents($pdfPath, $response->body());
+        } else {
+            throw new RenderFailureException('Gotenberg conversion failed: ' . $response->body());
+        }
+
         if (!file_exists($pdfPath)) {
-            throw new RenderFailureException('LibreOffice did not produce the expected PDF file.');
+            throw new RenderFailureException('Gotenberg did not produce the expected PDF file.');
         }
 
         // 2. Count pages using Imagick

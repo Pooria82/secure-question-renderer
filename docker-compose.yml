@@ -47,6 +47,21 @@ services:
     depends_on:
       - app
 
+  gotenberg:
+    build:
+      context: .
+      dockerfile: Dockerfile.gotenberg
+    container_name: gotenberg
+    restart: unless-stopped
+    command:
+      - "gotenberg"
+      - "--api-port=3000"
+      - "--log-level=debug"
+    ports:
+      - "3000:3000"
+    networks:
+      - app-network
+
 networks:
   app-network:
     driver: bridge

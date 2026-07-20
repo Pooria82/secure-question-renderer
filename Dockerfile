@@ -4,7 +4,11 @@ FROM php:8.4-fpm
 WORKDIR /var/www
 
 # Install dependencies for PHP, Node, and Puppeteer
-RUN apt-get update && apt-get install -y \
+RUN sed -i 's/Components: main/Components: main contrib non-free non-free-firmware/g' /etc/apt/sources.list.d/debian.sources || sed -i 's/main/main contrib non-free/g' /etc/apt/sources.list || true \
+    && apt-get update \
+    && apt-get install -y debconf-utils \
+    && echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections \
+    && apt-get install -y \
     libpng-dev \
     libjpeg62-turbo-dev \
     libfreetype6-dev \
@@ -36,9 +40,13 @@ RUN apt-get update && apt-get install -y \
     libx11-6 \
     libglib2.0-0 \
     fonts-liberation \
+    ttf-mscorefonts-installer \
+    fonts-farsiweb \
+    zlib1g-dev \
     xdg-utils \
     wget \
     gnupg \
+    chromium \
     libreoffice \
     ghostscript \
     imagemagick \
