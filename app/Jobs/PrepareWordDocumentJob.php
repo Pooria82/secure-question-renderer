@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Storage;
 use App\Exceptions\RenderFailureException;
 use Symfony\Component\Process\Process;
 
-class ConvertDocxToVisualPdfJob implements ShouldQueue
+class PrepareWordDocumentJob implements ShouldQueue
 {
     use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -38,7 +38,7 @@ class ConvertDocxToVisualPdfJob implements ShouldQueue
 
         $disk = Storage::disk('local');
         $tempDirPath = storage_path('app/private/' . $this->tempDir);
-        $disk->makeDirectory('private/' . $this->tempDir);
+        $disk->makeDirectory($this->tempDir);
 
         // 1. Convert DOCX to PDF using LibreOffice
         $process = new Process([
@@ -49,7 +49,7 @@ class ConvertDocxToVisualPdfJob implements ShouldQueue
             $this->inputPath,
             '--outdir',
             $tempDirPath
-        ]);
+        ], null, ['HOME' => '/tmp']);
         $process->setTimeout(300);
         $process->run();
 
@@ -73,6 +73,9 @@ class ConvertDocxToVisualPdfJob implements ShouldQueue
         } catch (\Exception $e) {
             throw new RenderFailureException('Failed to read PDF pages with Imagick: ' . $e->getMessage());
         }
+
+        // Write metadata for CompileSecurePdfJob
+        $disk->put($this->tempDir . '/metadata.json', json_encode(['expected_pages' => $pages]));
 
         // 3. Dispatch a job for each page
         $jobs = [];

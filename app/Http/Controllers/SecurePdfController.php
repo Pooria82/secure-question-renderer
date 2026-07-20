@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Exceptions\InputValidationException;
-use App\Services\QuestionProcessingService;
 use App\Services\SecurePdfGenerationService;
 use App\Strategies\JsonQuestionParser;
 use App\Strategies\WordQuestionParser;
@@ -39,23 +38,21 @@ class SecurePdfController extends Controller
         try {
             $outputFilename = 'secure_exam_' . time() . '.pdf';
 
-            if ($extension === 'json') {
-                $parser = new JsonQuestionParser();
-                $input = file_get_contents($file->getRealPath());
-                $processor = new QuestionProcessingService($parser);
-                $questions = $processor->process($input);
-                $batchId = $this->pdfService->generate($questions, $outputFilename);
-            } elseif (in_array($extension, ['doc', 'docx'])) {
-                // Store file securely since queue worker needs it after request terminates
-                $path = $file->storeAs('private/uploads', uniqid('docx_') . '.' . $extension, 'local');
-                $absolutePath = storage_path('app/' . $path);
-                
-                // visual rendering for exact replica
-                $visualService = app(\App\Services\VisualPdfGenerationService::class);
-                $batchId = $visualService->generate($absolutePath, $outputFilename);
-            } else {
+            // Store file securely since queue worker/parser needs it after request terminates
+            $path = $file->storeAs('private/uploads', uniqid('file_') . '.' . $extension, 'local');
+            $absolutePath = storage_path('app/' . $path);
+
+            $parser = match($extension) {
+                'json' => new JsonQuestionParser(),
+                'doc', 'docx' => new WordQuestionParser(),
+                default => null,
+            };
+
+            if (!$parser) {
                 return response()->json(['error' => 'Unsupported file format.'], 400);
             }
+
+            $batchId = $this->pdfService->generate($parser, $absolutePath, $outputFilename);
 
             return response()->json([
                 'message' => 'Secure PDF generation has started.',

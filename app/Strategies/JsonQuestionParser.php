@@ -10,14 +10,20 @@ use JsonException;
 class JsonQuestionParser implements QuestionParserInterface
 {
     /**
-     * Parse JSON input into a standardized format.
+     * Parse JSON input and dispatch jobs.
      *
-     * @param mixed $input JSON string
+     * @param string $inputPath Path to JSON file
+     * @param string $tempDir Temporary directory
      * @return array
      * @throws InputValidationException
      */
-    public function parse(mixed $input): array
+    public function generateJobs(string $inputPath, string $tempDir): array
     {
+        if (!file_exists($inputPath)) {
+            throw new InputValidationException('JSON parser expects a valid file path.');
+        }
+
+        $input = file_get_contents($inputPath);
         if (!is_string($input)) {
             throw new InputValidationException('JSON parser expects a string input.');
         }
@@ -28,16 +34,21 @@ class JsonQuestionParser implements QuestionParserInterface
             throw new InputValidationException('Invalid JSON provided: ' . $e->getMessage(), 0, $e);
         }
 
-        if (!is_array($data)) {
-            throw new InputValidationException('JSON must decode to an array or object.');
-        }
-
-        // Basic validation that it's a list of questions
-        // In a real scenario, deeper validation of the structure should occur here
-        if (!isset($data['questions']) || !is_array($data['questions'])) {
+        if (!is_array($data) || !isset($data['questions']) || !is_array($data['questions'])) {
             throw new InputValidationException('Missing "questions" array in JSON.');
         }
 
-        return $data['questions'];
+        $questions = $data['questions'];
+        $pages = count($questions);
+
+        // Write metadata for CompileSecurePdfJob
+        \Illuminate\Support\Facades\Storage::disk('local')->put($tempDir . '/metadata.json', json_encode(['expected_pages' => $pages]));
+
+        $jobs = [];
+        foreach ($questions as $question) {
+            $jobs[] = new \App\Jobs\RenderSecureQuestionImageJob($question, $tempDir);
+        }
+
+        return $jobs;
     }
 }

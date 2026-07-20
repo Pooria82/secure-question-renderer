@@ -58,8 +58,7 @@ class RenderSecureQuestionImageJob implements ShouldQueue
 
             Browsershot::html($html)
                 ->noSandbox()
-                ->setNodeBinary('node') // Assume node is in path
-                ->setNpmBinary('npm') // Assume npm is in path
+                ->setChromePath('/usr/bin/chromium')
                 ->windowSize(1024, 768)
                 ->waitUntilNetworkIdle()
                 ->save($imagePath);

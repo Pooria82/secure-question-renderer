@@ -7,10 +7,11 @@ namespace App\Strategies;
 interface QuestionParserInterface
 {
     /**
-     * Parse the given input into a standardized format.
+     * Parse the given input and return a structure containing rendering jobs.
      *
-     * @param mixed $input
+     * @param string $inputPath
+     * @param string $tempDir
      * @return array
      */
-    public function parse(mixed $input): array;
+    public function generateJobs(string $inputPath, string $tempDir): array;
 }

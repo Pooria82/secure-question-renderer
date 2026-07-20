@@ -15,19 +15,19 @@ class SecurePdfGenerationService
     /**
      * Dispatch the job batch to generate a secure PDF.
      *
-     * @param array $questions Validated questions array
+     * @param \App\Strategies\QuestionParserInterface $parser
+     * @param string $inputPath Path to the input file
      * @param string $outputFilename The name of the final PDF file
      * @return string The Batch ID
      * @throws Throwable
      */
-    public function generate(array $questions, string $outputFilename): string
+    public function generate(\App\Strategies\QuestionParserInterface $parser, string $inputPath, string $outputFilename): string
     {
         $tempDir = 'temp_renders_' . Str::random(10);
-        $jobs = [];
+        \Illuminate\Support\Facades\Storage::disk('local')->makeDirectory($tempDir);
 
-        foreach ($questions as $question) {
-            $jobs[] = new RenderSecureQuestionImageJob($question, $tempDir);
-        }
+        // Generate jobs using strategy pattern
+        $jobs = $parser->generateJobs($inputPath, $tempDir);
 
         $batch = Bus::batch($jobs)
             ->then(function (\Illuminate\Bus\Batch $batch) use ($tempDir, $outputFilename) {
@@ -37,7 +37,7 @@ class SecurePdfGenerationService
             ->catch(function (\Illuminate\Bus\Batch $batch, Throwable $e) {
                 // Handle batch failure if needed
             })
-            ->name('Secure Question PDF Compilation')
+            ->name('Secure Document Compilation')
             ->dispatch();
 
         return $batch->id;

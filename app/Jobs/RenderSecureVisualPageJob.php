@@ -82,7 +82,7 @@ class RenderSecureVisualPageJob implements ShouldQueue
             // 3. Save the secured page
             // Zero-pad page index for correct alphabetical sorting by CompileSecurePdfJob
             $fileName = sprintf('page_%04d.png', $this->pageIndex);
-            $outputPath = 'private/' . $this->tempDir . '/' . $fileName;
+            $outputPath = $this->tempDir . '/' . $fileName;
 
             Storage::disk('local')->put($outputPath, (string) $image->encode());
 
