@@ -70,7 +70,7 @@ class CompileSecurePdfJob implements ShouldQueue
                     $mpdf->AddPage();
                 }
 
-                $imagePath = storage_path('app/' . $file);
+                $imagePath = $disk->path($file);
                 $mpdf->Image($imagePath, 0, 0, 210, 297, 'png', '', true, false);
                 $index++;
             }
