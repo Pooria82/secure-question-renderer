@@ -43,20 +43,39 @@ class RenderSecureVisualPageJob implements ShouldQueue
         ini_set('memory_limit', '1024M');
 
         try {
-            // 1. Convert specific PDF page to high-res PNG using Imagick
-            $imagick = new \Imagick();
-            $imagick->setResolution(300, 300); // 300 DPI for high fidelity
-            // Read only the specific page
-            $imagick->readImage($this->pdfPath . '[' . $this->pageIndex . ']');
+            // 1. Convert specific PDF page to high-res PNG using Ghostscript directly
+            // Imagick sometimes fails to render fonts or flatten complex PDFs properly
+            $gsPage = $this->pageIndex + 1;
+            $pngBlobFile = tempnam(sys_get_temp_dir(), 'gs_') . '.png';
             
-            // Set background to white before flattening (PDFs might have transparent background)
-            $imagick->setImageBackgroundColor(new \ImagickPixel('white'));
-            $imagick = $imagick->mergeImageLayers(\Imagick::LAYERMETHOD_FLATTEN);
+            $process = new \Symfony\Component\Process\Process([
+                'gs',
+                '-q',
+                '-dQUIET',
+                '-dSAFER',
+                '-dBATCH',
+                '-dNOPAUSE',
+                '-dNOPROMPT',
+                '-dMaxBitmap=500000000',
+                '-sDEVICE=png16m',
+                '-dTextAlphaBits=4',
+                '-dGraphicsAlphaBits=4',
+                '-r300',
+                '-dFirstPage=' . $gsPage,
+                '-dLastPage=' . $gsPage,
+                '-sOutputFile=' . $pngBlobFile,
+                $this->pdfPath
+            ]);
             
-            $imagick->setImageFormat('png');
-            $pngBlob = $imagick->getImageBlob();
-            $imagick->clear();
-            $imagick->destroy();
+            $process->setTimeout(300);
+            $process->run();
+            
+            if (!$process->isSuccessful()) {
+                throw new \Exception("Ghostscript failed: " . $process->getErrorOutput());
+            }
+            
+            $pngBlob = file_get_contents($pngBlobFile);
+            @unlink($pngBlobFile);
 
             // 2. Apply Anti-OCR and Watermarks using Intervention Image
             $manager = new ImageManager(new Driver());
