@@ -30,7 +30,11 @@ Thumbs.db
 /storage/app/public/uploads/
 /storage/app/temp/
 /storage/app/generated/
-
+/storage/app/private/mpdf_temp/
+/storage/app/private/secure_pdfs/
+/storage/app/private/uploads/
+/storage/app/private/temp/
+/storage/app/testing/
 # Puppeteer cache
 .puppeteer-cache/
 
