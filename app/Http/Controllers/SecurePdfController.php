@@ -39,6 +39,9 @@ class SecurePdfController extends Controller
             $outputFilename = 'secure_exam_' . time() . '.pdf';
 
             // Store file securely since queue worker/parser needs it after request terminates
+            \Illuminate\Support\Facades\File::ensureDirectoryExists(storage_path('app/private/uploads'));
+            \Illuminate\Support\Facades\File::ensureDirectoryExists(storage_path('app/private/secure_pdfs'));
+
             $path = $file->storeAs('uploads', uniqid('file_') . '.' . $extension, 'local');
             $absolutePath = Storage::disk('local')->path($path);
 
@@ -64,7 +67,7 @@ class SecurePdfController extends Controller
         } catch (InputValidationException $e) {
             return response()->json(['error' => $e->getMessage()], 422);
         } catch (\Throwable $e) {
-            return response()->json(['error' => 'An unexpected error occurred: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'An unexpected error occurred: ' . $e->getMessage() . "\n" . $e->getTraceAsString()], 500);
         }
     }
 

@@ -1,0 +1,204 @@
+{
+  "questions": [
+    {
+      "id": "q_1",
+      "text": "What is the capital of France?",
+      "options": [
+        "Berlin",
+        "London",
+        "Paris",
+        "Madrid"
+      ]
+    },
+    {
+      "id": "q_2",
+      "text": "حاصل جمع دو عدد ۲ و ۲ چند می‌شود؟",
+      "options": [
+        "۳",
+        "۴",
+        "۵",
+        "۶"
+      ]
+    },
+    {
+      "id": "q_3",
+      "text": "Which of the following is the derivative of x^2?",
+      "options": [
+        "x",
+        "2x",
+        "x^3/3",
+        "1"
+      ]
+    },
+    {
+      "id": "q_4",
+      "text": "کدام یک از توابع زیر پیوسته است؟",
+      "options": [
+        "f(x) = 1/x",
+        "f(x) = |x|",
+        "f(x) = tan(x)",
+        "f(x) = log(x) for x=0"
+      ]
+    },
+    {
+      "id": "q_5",
+      "text": "Solve for x: <math><semantics><mrow><mn>2</mn><mi>x</mi><mo>+</mo><mn>3</mn><mo>=</mo><mn>7</mn></mrow></semantics></math>",
+      "options": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ]
+    },
+    {
+      "id": "q_6",
+      "text": "مجموع زوایای داخلی یک مثلث چند درجه است؟",
+      "options": [
+        "90",
+        "180",
+        "270",
+        "360"
+      ]
+    },
+    {
+      "id": "q_7",
+      "text": "Who wrote 'Hamlet'?",
+      "options": [
+        "Charles Dickens",
+        "William Shakespeare",
+        "Mark Twain",
+        "Jane Austen"
+      ]
+    },
+    {
+      "id": "q_8",
+      "text": "حد تابع <math><semantics><mrow><munder><mo>lim</mo><mrow><mi>x</mi><mo>→</mo><mn>0</mn></mrow></munder><mfrac><mrow><mo>sin</mo><mo stretchy=\"false\">(</mo><mi>x</mi><mo stretchy=\"false\">)</mo></mrow><mi>x</mi></mfrac></mrow></semantics></math> کدام است؟",
+      "options": [
+        "0",
+        "1",
+        "infinity",
+        "undefined"
+      ]
+    },
+    {
+      "id": "q_9",
+      "text": "What is the atomic number of Oxygen?",
+      "options": [
+        "6",
+        "7",
+        "8",
+        "9"
+      ]
+    },
+    {
+      "id": "q_10",
+      "text": "پایتخت ایران کدام شهر است؟",
+      "options": [
+        "تبریز",
+        "اصفهان",
+        "مشهد",
+        "تهران"
+      ]
+    },
+    {
+      "id": "q_11",
+      "text": "Calculate the integral of cos(x):",
+      "options": [
+        "sin(x)",
+        "-sin(x)",
+        "cos(x)",
+        "-cos(x)"
+      ]
+    },
+    {
+      "id": "q_12",
+      "text": "مساحت دایره‌ای به شعاع <math><semantics><mrow><mi>r</mi></mrow></semantics></math> چقدر است؟",
+      "options": [
+        "2πr",
+        "πr^2",
+        "4πr^2",
+        "πr"
+      ]
+    },
+    {
+      "id": "q_13",
+      "text": "Which planet is known as the Red Planet?",
+      "options": [
+        "Earth",
+        "Mars",
+        "Jupiter",
+        "Venus"
+      ]
+    },
+    {
+      "id": "q_14",
+      "text": "نویسنده شاهنامه چه کسی است؟",
+      "options": [
+        "حافظ",
+        "سعدی",
+        "فردوسی",
+        "مولوی"
+      ]
+    },
+    {
+      "id": "q_15",
+      "text": "Find the roots of the equation <math><semantics><mrow><msup><mi>x</mi><mn>2</mn></msup><mo>−</mo><mn>5</mn><mi>x</mi><mo>+</mo><mn>6</mn><mo>=</mo><mn>0</mn></mrow></semantics></math>",
+      "options": [
+        "2, 3",
+        "-2, -3",
+        "1, 6",
+        "-1, -6"
+      ]
+    },
+    {
+      "id": "q_16",
+      "text": "در کدام جنگ ناپلئون شکست خورد؟",
+      "options": [
+        "واترلو",
+        "استرلیتز",
+        "لایپزیگ",
+        "بورودینو"
+      ]
+    },
+    {
+      "id": "q_17",
+      "text": "What is the speed of light in vacuum?",
+      "options": [
+        "300,000 km/s",
+        "150,000 km/s",
+        "1,080,000 km/h",
+        "30,000 km/s"
+      ]
+    },
+    {
+      "id": "q_18",
+      "text": "فرمول شیمیایی آب کدام است؟",
+      "options": [
+        "CO2",
+        "H2O",
+        "O2",
+        "NaCl"
+      ]
+    },
+    {
+      "id": "q_19",
+      "text": "Identify the Pythagorean theorem:",
+      "options": [
+        "a^2 + b^2 = c^2",
+        "a + b = c",
+        "E = mc^2",
+        "F = ma"
+      ]
+    },
+    {
+      "id": "q_20",
+      "text": "رنگ آسمان در روزهای صاف چه رنگی است؟",
+      "options": [
+        "قرمز",
+        "زرد",
+        "آبی",
+        "سبز"
+      ]
+    }
+  ]
+}
