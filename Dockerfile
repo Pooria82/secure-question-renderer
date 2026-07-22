@@ -51,6 +51,7 @@ RUN sed -i 's/Components: main/Components: main contrib non-free non-free-firmwa
     ghostscript \
     imagemagick \
     libmagickwand-dev \
+    pandoc \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && sed -i 's/rights="none" pattern="PDF"/rights="read|write" pattern="PDF"/g' /etc/ImageMagick-6/policy.xml || true \

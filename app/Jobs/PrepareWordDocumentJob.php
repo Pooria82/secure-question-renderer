@@ -36,17 +36,70 @@ class PrepareWordDocumentJob implements ShouldQueue
             return;
         }
 
-        $disk = Storage::disk('local');
         $tempDirPath = storage_path('app/private/' . $this->tempDir);
-        $disk->makeDirectory($this->tempDir);
+        \Illuminate\Support\Facades\File::ensureDirectoryExists($tempDirPath);
 
-        // 1. Convert DOCX to PDF using Gotenberg API
-        $filename = pathinfo($this->inputPath, PATHINFO_FILENAME) . '.pdf';
-        $pdfPath = $tempDirPath . '/' . $filename;
+        // 1. Convert DOCX to HTML with MathML using Pandoc, then HTML to PDF via Gotenberg Chromium
+        $filename = pathinfo($this->inputPath, PATHINFO_FILENAME);
+        $htmlPath = $tempDirPath . '/' . $filename . '.html';
+        $pdfPath = $tempDirPath . '/' . $filename . '.pdf';
 
-        $response = \Illuminate\Support\Facades\Http::attach(
-            'files', file_get_contents($this->inputPath), basename($this->inputPath)
-        )->post('http://gotenberg:3000/forms/libreoffice/convert');
+        $process = new Process([
+            'pandoc',
+            $this->inputPath,
+            '-f', 'docx',
+            '-t', 'html',
+            '--embed-resources',
+            '--standalone',
+            '--mathml',
+            '-o', $htmlPath
+        ]);
+        $process->setTimeout(600);
+        $process->run();
+
+        if (!$process->isSuccessful()) {
+            throw new RenderFailureException('Pandoc conversion failed: ' . $process->getErrorOutput());
+        }
+
+        $htmlContent = file_get_contents($htmlPath);
+        
+        // Inject custom CSS to fix RTL/LTR alignment and prevent Gotenberg Chromium truncation
+        $customCss = <<<CSS
+<style>
+    /* Override Pandoc's default max-width which causes narrow column truncation */
+    html, body {
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 20px !important;
+        font-family: 'Amiri', 'Noto Sans Arabic', 'Arial', sans-serif !important;
+        direction: rtl !important;
+        text-align: right !important;
+        overflow: visible !important;
+    }
+    /* Auto-detect text direction based on content for all text elements */
+    p, div, span, table, td, th, h1, h2, h3, h4, h5, h6, li { 
+        direction: rtl !important;
+        text-align: right !important; 
+        overflow: visible !important;
+    }
+    table { width: 100% !important; display: table !important; overflow: visible !important; }
+    tr { page-break-inside: avoid !important; }
+    /* Ensure math blocks do not break layouts */
+    math { max-width: 100%; overflow: visible !important; }
+    pre, code, .sourceCode { overflow: visible !important; white-space: pre-wrap !important; }
+</style>
+CSS;
+        $htmlContent = str_replace('</head>', $customCss . "\n</head>", $htmlContent);
+
+        $response = \Illuminate\Support\Facades\Http::timeout(600)->attach(
+            'files', $htmlContent, 'index.html'
+        )->post('http://gotenberg:3000/forms/chromium/convert/html', [
+            'marginTop' => 0,
+            'marginBottom' => 0,
+            'marginLeft' => 0,
+            'marginRight' => 0,
+            'waitDelay' => '2s' // Wait for MathML to fully render
+        ]);
 
         if ($response->successful()) {
             file_put_contents($pdfPath, $response->body());
@@ -68,7 +121,7 @@ class PrepareWordDocumentJob implements ShouldQueue
         }
 
         // Write metadata for CompileSecurePdfJob
-        $disk->put($this->tempDir . '/metadata.json', json_encode(['expected_pages' => $pages]));
+        file_put_contents($tempDirPath . '/metadata.json', json_encode(['expected_pages' => $pages]));
 
         // 3. Dispatch a job for each page
         $jobs = [];
