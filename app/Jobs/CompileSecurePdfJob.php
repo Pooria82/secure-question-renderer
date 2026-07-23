@@ -33,7 +33,7 @@ class CompileSecurePdfJob implements ShouldQueue
         $this->batchId = $batchId;
     }
 
-    public function handle(PdfPageCounterService $pageCounterService): void
+    public function handle(\App\Contracts\PdfPageCounterInterface $pageCounterService): void
     {
         $disk = Storage::disk('local');
         $directoryPath = $this->tempDir;

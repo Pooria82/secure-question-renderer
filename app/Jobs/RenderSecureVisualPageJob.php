@@ -52,6 +52,8 @@ class RenderSecureVisualPageJob implements ShouldQueue
             $gsPage = $this->pageIndex + 1;
             $pngBlobFile = tempnam(sys_get_temp_dir(), 'gs_').'.png';
 
+            $resolution = config('secure-pdf.processing.ghostscript_resolution', 300);
+
             $process = new Process([
                 'gs',
                 '-q',
@@ -64,7 +66,7 @@ class RenderSecureVisualPageJob implements ShouldQueue
                 '-sDEVICE=png16m',
                 '-dTextAlphaBits=4',
                 '-dGraphicsAlphaBits=4',
-                '-r300',
+                '-r'.$resolution,
                 '-dFirstPage='.$gsPage,
                 '-dLastPage='.$gsPage,
                 '-sOutputFile='.$pngBlobFile,
@@ -85,15 +87,19 @@ class RenderSecureVisualPageJob implements ShouldQueue
             $manager = new ImageManager(new Driver);
             $image = $manager->decode($pngBlob);
 
+            $watermarkText = config('secure-pdf.security.watermark_text', 'CONFIDENTIAL - SECURE EXAM');
+            $watermarkColor = config('secure-pdf.security.watermark_color', 'rgba(255, 0, 0, 0.15)');
+            $noiseLines = config('secure-pdf.security.noise_lines', 15);
+
             // Add diagonal semi-transparent watermark
-            $image->text('CONFIDENTIAL - SECURE EXAM', $image->width() / 2, $image->height() / 2, function ($font) {
-                $font->color('rgba(255, 0, 0, 0.15)');
+            $image->text($watermarkText, (int) ($image->width() / 2), (int) ($image->height() / 2), function ($font) use ($watermarkColor) {
+                $font->color($watermarkColor);
                 $font->size(80);
                 $font->angle(45);
             });
 
             // Add random noise lines to confuse OCR
-            for ($i = 0; $i < 15; $i++) {
+            for ($i = 0; $i < $noiseLines; $i++) {
                 $image->drawLine(function ($line) use ($image) {
                     $line->from(rand(0, $image->width()), rand(0, $image->height()));
                     $line->to(rand(0, $image->width()), rand(0, $image->height()));

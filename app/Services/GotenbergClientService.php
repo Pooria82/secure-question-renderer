@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Contracts\HtmlToPdfConverterInterface;
 use App\Exceptions\RenderFailureException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 
-class GotenbergClientService
+class GotenbergClientService implements HtmlToPdfConverterInterface
 {
     /**
      * Converts HTML string to PDF using Gotenberg.
@@ -27,7 +28,7 @@ class GotenbergClientService
                 'marginBottom' => 0,
                 'marginLeft' => 0,
                 'marginRight' => 0,
-                'waitDelay' => '2s',
+                'waitDelay' => config('secure-pdf.gotenberg.wait_delay', '2s'),
                 'preferCSSPageSize' => true,
                 'printBackground' => true,
             ]);
@@ -41,7 +42,7 @@ class GotenbergClientService
                         'marginBottom' => 0,
                         'marginLeft' => 0,
                         'marginRight' => 0,
-                        'waitDelay' => '2s',
+                        'waitDelay' => config('secure-pdf.gotenberg.wait_delay', '2s'),
                         'preferCSSPageSize' => true,
                         'printBackground' => true,
                     ]);

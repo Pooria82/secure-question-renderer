@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Contracts\PdfPageCounterInterface;
 use App\Exceptions\RenderFailureException;
 
-class PdfPageCounterService
+class PdfPageCounterService implements PdfPageCounterInterface
 {
     /**
      * Determine the number of pages in a PDF file.

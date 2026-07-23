@@ -36,8 +36,8 @@ class PrepareJsonDocumentJob implements ShouldQueue
 
     public function handle(
         HtmlSanitizerService $sanitizerService,
-        GotenbergClientService $gotenbergService,
-        PdfPageCounterService $pageCounterService
+        \App\Contracts\HtmlToPdfConverterInterface $gotenbergService,
+        \App\Contracts\PdfPageCounterInterface $pageCounterService
     ): void {
         if ($this->batch()?->cancelled()) {
             return;
