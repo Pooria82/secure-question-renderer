@@ -21,14 +21,19 @@ class JsonQuestionParserTest extends TestCase
     public function test_it_correctly_extracts_data_from_valid_json()
     {
         $validJson = '{"questions": [{"id": "q1", "text": "Question?", "options": ["A", "B"]}]}';
-        
-        $result = $this->parser->parse($validJson);
+        $tempFile = sys_get_temp_dir() . '/test_valid_' . uniqid() . '.json';
+        file_put_contents($tempFile, $validJson);
 
-        $this->assertIsArray($result);
-        $this->assertCount(1, $result);
-        $this->assertEquals('q1', $result[0]['id']);
-        $this->assertEquals('Question?', $result[0]['text']);
-        $this->assertEquals(['A', 'B'], $result[0]['options']);
+        try {
+            $jobs = $this->parser->generateJobs($tempFile, 'test_temp_dir');
+            $this->assertIsArray($jobs);
+            $this->assertCount(1, $jobs);
+            $this->assertInstanceOf(\App\Jobs\RenderSecureQuestionImageJob::class, $jobs[0]);
+        } finally {
+            if (file_exists($tempFile)) {
+                unlink($tempFile);
+            }
+        }
     }
 
     public function test_it_throws_exception_on_corrupted_json()
@@ -37,7 +42,16 @@ class JsonQuestionParserTest extends TestCase
         $this->expectExceptionMessage('Invalid JSON provided');
 
         $corruptedJson = '{"questions": [{"id": "q1" // missing closing braces';
-        $this->parser->parse($corruptedJson);
+        $tempFile = sys_get_temp_dir() . '/test_corrupt_' . uniqid() . '.json';
+        file_put_contents($tempFile, $corruptedJson);
+
+        try {
+            $this->parser->generateJobs($tempFile, 'test_temp_dir');
+        } finally {
+            if (file_exists($tempFile)) {
+                unlink($tempFile);
+            }
+        }
     }
 
     public function test_it_throws_exception_if_missing_questions_array()
@@ -46,6 +60,15 @@ class JsonQuestionParserTest extends TestCase
         $this->expectExceptionMessage('Missing "questions" array in JSON.');
 
         $missingArray = '{"data": []}';
-        $this->parser->parse($missingArray);
+        $tempFile = sys_get_temp_dir() . '/test_missing_' . uniqid() . '.json';
+        file_put_contents($tempFile, $missingArray);
+
+        try {
+            $this->parser->generateJobs($tempFile, 'test_temp_dir');
+        } finally {
+            if (file_exists($tempFile)) {
+                unlink($tempFile);
+            }
+        }
     }
 }

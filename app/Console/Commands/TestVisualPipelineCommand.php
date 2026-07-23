@@ -3,7 +3,8 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use App\Services\VisualPdfGenerationService;
+use App\Services\SecurePdfGenerationService;
+use App\Strategies\WordQuestionParser;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Storage;
 
@@ -12,7 +13,7 @@ class TestVisualPipelineCommand extends Command
     protected $signature = 'test:visual-pipeline';
     protected $description = 'E2E test for the visual pipeline on 98.docx';
 
-    public function handle(VisualPdfGenerationService $service)
+    public function handle(SecurePdfGenerationService $service, WordQuestionParser $parser)
     {
         $inputPath = base_path('tests/Fixtures/98.docx');
         
@@ -29,7 +30,7 @@ class TestVisualPipelineCommand extends Command
             Storage::disk('local')->delete('private/secure_pdfs/' . $outputFilename);
         }
 
-        $batchId = $service->generate($inputPath, $outputFilename);
+        $batchId = $service->generate($parser, $inputPath, $outputFilename);
         $this->info("Dispatched batch " . $batchId . ". Running queue worker...");
 
         // Run queue worker until empty

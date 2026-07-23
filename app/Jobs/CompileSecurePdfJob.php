@@ -84,9 +84,24 @@ class CompileSecurePdfJob implements ShouldQueue
 
             // QA Assertion
             if ($expectedPages !== null) {
-                $imagick = new \Imagick();
-                $imagick->pingImage($pdfOutputPath);
-                $actualPageCount = $imagick->getNumberImages();
+                $actualPageCount = 0;
+                if (class_exists('\Imagick')) {
+                    try {
+                        $imagick = new \Imagick();
+                        $imagick->pingImage($pdfOutputPath);
+                        $actualPageCount = $imagick->getNumberImages();
+                    } catch (Throwable $e) {
+                        $actualPageCount = 0;
+                    }
+                }
+                if ($actualPageCount === 0) {
+                    $pdfContent = file_get_contents($pdfOutputPath);
+                    if (preg_match('/\/Count\s+(\d+)/', $pdfContent, $matches)) {
+                        $actualPageCount = (int) $matches[1];
+                    } else {
+                        $actualPageCount = preg_match_all('/\/Type\s*\/Page\b/', $pdfContent);
+                    }
+                }
                 if ($actualPageCount !== $expectedPages) {
                     throw new PageCountMismatchException("Page count mismatch. Expected {$expectedPages}, got {$actualPageCount}.");
                 }
