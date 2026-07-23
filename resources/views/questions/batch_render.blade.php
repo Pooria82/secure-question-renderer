@@ -27,10 +27,8 @@
             font-size: 18px;
         }
         .options-list {
-            list-style-type: circle;
-            list-style-position: outside;
+            list-style-type: none;
             padding: 0;
-            padding-inline-start: 30px;
             margin: 0;
         }
         .option-item {
@@ -45,14 +43,25 @@
     </style>
 </head>
 <body>
+    @php
+        function getDirection($text) {
+            return preg_match('/[\p{Arabic}]/u', strip_tags($text)) ? 'rtl' : 'ltr';
+        }
+    @endphp
     @foreach($questions as $question)
-    <div class="question-container" dir="auto">
+    @php
+        $qDir = getDirection($question['text'] ?? '');
+    @endphp
+    <div class="question-container" dir="{{ $qDir }}">
         <div class="question-text">
             {!! $question['text'] ?? 'Missing Question Text' !!}
         </div>
         <ul class="options-list">
             @foreach($question['options'] ?? [] as $option)
-                <li class="option-item">
+                @php
+                    $optDir = getDirection($option);
+                @endphp
+                <li class="option-item" dir="{{ $optDir }}">
                     {!! $option !!}
                 </li>
             @endforeach

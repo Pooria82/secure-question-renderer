@@ -85,12 +85,8 @@ class RenderSecureVisualPageJob implements ShouldQueue
             $manager = new ImageManager(new Driver);
             $image = $manager->decode($pngBlob);
 
-            // Add diagonal semi-transparent watermark
-            $image->text('CONFIDENTIAL - SECURE EXAM', $image->width() / 2, $image->height() / 2, function ($font) {
-                $font->color('rgba(255, 0, 0, 0.15)');
-                $font->size(80);
-                $font->angle(45);
-            });
+            // Removed text watermark because default GD fonts at size 80 render as glitchy strange characters.
+            // We rely on geometric noise lines and DRM for security instead.
 
             // Add random noise lines to confuse OCR
             for ($i = 0; $i < 15; $i++) {
