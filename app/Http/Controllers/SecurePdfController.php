@@ -62,14 +62,15 @@ class SecurePdfController extends Controller
         } catch (InputValidationException $e) {
             return response()->json(['error' => $e->getMessage()], 422);
         } catch (\Throwable $e) {
-            return response()->json(['error' => 'An unexpected error occurred: '.$e->getMessage()."\n".$e->getTraceAsString()], 500);
+            report($e);
+            return response()->json(['error' => 'An unexpected error occurred processing your request.'], 500);
         }
     }
 
     /**
      * Check batch status and download if complete.
      */
-    public function download(string $batchId, Request $request)
+    public function download(string $batchId, Request $request): mixed
     {
         $batch = Bus::findBatch($batchId);
 
