@@ -102,16 +102,6 @@ class SecurePdfController extends Controller
             return response()->json(['error' => 'PDF compilation failed during final assembly.'], 500);
         }
 
-        if (Cache::get('compiling_'.$batchId)) {
-            return response()->json([
-                'status' => 'compiling',
-                'progress' => 100,
-            ]);
-        }
-
-        // Normally, the filename should be stored in a database associated with the batch ID.
-        // For simplicity here, we assume the client passed the filename or we find the latest.
-        // If not passed, we can't reliably guess the filename since it's timestamped.
         $filename = $request->query('filename');
         if (! $filename) {
             return response()->json(['error' => 'Filename query parameter is required to download.'], 400);
@@ -119,8 +109,15 @@ class SecurePdfController extends Controller
 
         $path = storage_path('app/private/secure_pdfs/'.$filename);
 
+        // If batch is finished but file doesn't exist yet, it's in the compile queue!
         if (! file_exists($path)) {
-            return response()->json(['error' => 'PDF file not found.'], 404);
+            if (! Cache::get('compile_failed_'.$batchId)) {
+                return response()->json([
+                    'status' => 'compiling',
+                    'progress' => 100,
+                ]);
+            }
+            return response()->json(['error' => 'PDF file not found or compilation failed.'], 404);
         }
 
         return response()->download($path, $filename, [

@@ -118,9 +118,6 @@ class CompileSecurePdfJob implements ShouldQueue
             report($e);
             throw $e; // Rethrow to mark job as failed
         } finally {
-            if ($this->batchId) {
-                Cache::forget('compiling_'.$this->batchId);
-            }
             if ($disk->exists($directoryPath)) {
                 $disk->deleteDirectory($directoryPath);
             }

@@ -36,7 +36,6 @@ class SecurePdfGenerationService
             $batch = Bus::batch($jobs)
                 ->then(function (Batch $batch) use ($tempDir, $outputFilename) {
                     // This will execute after all jobs are successfully completed
-                    Cache::put('compiling_'.$batch->id, true, 86400);
                     dispatch(new CompileSecurePdfJob($tempDir, $outputFilename, $batch->id));
                 })
                 ->catch(function (Batch $batch, Throwable $e) use ($tempDir) {
