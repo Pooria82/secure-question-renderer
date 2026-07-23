@@ -75,5 +75,12 @@ COPY . /var/www
 RUN chown -R www-data:www-data /var/www \
     && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
+# Setup entrypoint to fix permissions dynamically when mounted
+COPY ./docker/php/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN tr -d '\r' < /usr/local/bin/entrypoint.sh > /tmp/entrypoint.sh \
+    && mv /tmp/entrypoint.sh /usr/local/bin/entrypoint.sh \
+    && chmod +x /usr/local/bin/entrypoint.sh
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+
 EXPOSE 9000
 CMD ["php-fpm"]
