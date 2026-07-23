@@ -121,13 +121,17 @@ class PrepareWordDocumentJob implements ShouldQueue
     }
     tr { page-break-inside: avoid !important; }
     /* Insulate MathML formulas */
-    math, math * { 
+    math { 
         direction: ltr !important; 
         unicode-bidi: embed !important; 
         text-align: initial !important;
         display: inline-block !important; 
         max-width: 100%; 
         overflow: visible !important; 
+    }
+    /* Specifically ensure annotations (raw latex) remain hidden */
+    annotation {
+        display: none !important;
     }
     /* Insulate code blocks */
     pre, code, .sourceCode { 
