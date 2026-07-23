@@ -106,6 +106,7 @@ class PrepareWordDocumentJob implements ShouldQueue
         // We MUST skip <math> blocks completely so we don't inject spans into MathML elements and break them.
         $parts = preg_split('/(<math\b.*?>.*?<\/math>)/is', $htmlContent, -1, PREG_SPLIT_DELIM_CAPTURE);
         $htmlContent = "";
+        $persianMathPattern = '/(?:<mi>\s*[\p{Arabic}\x{200C}]\s*<\/mi>\s*|<mspace\b[^>]*><\/mspace>\s*)+/u';
         foreach ($parts as $i => $part) {
             if ($i % 2 === 0) {
                 // Outside math tags, apply our text node regex
@@ -114,6 +115,19 @@ class PrepareWordDocumentJob implements ShouldQueue
                     // Match sequences starting/ending with alphanumeric, containing allowed punctuation in between
                     $text = preg_replace('/([a-zA-Z0-9][a-zA-Z0-9\(\)\=\+\-\*\/\.\, ]*[a-zA-Z0-9]|[a-zA-Z0-9])/i', '<span dir="ltr" style="unicode-bidi: embed;">$1</span>', $text);
                     return $matches[1] . $text . $matches[3];
+                }, $part);
+            } else {
+                // Inside math tags, fix disconnected Persian characters translated as isolated <mi> tags by Pandoc
+                $part = preg_replace_callback($persianMathPattern, function ($seqMatch) {
+                    $sequence = $seqMatch[0];
+                    if (!preg_match('/[\p{Arabic}]/u', $sequence)) {
+                        return $sequence; // Leave isolated spaces alone
+                    }
+                    $text = preg_replace('/<mi>\s*([\p{Arabic}\x{200C}])\s*<\/mi>/u', '$1', $sequence);
+                    $text = preg_replace('/<mspace\b[^>]*><\/mspace>/u', ' ', $text);
+                    $text = preg_replace('/\s+/', ' ', $text);
+                    $text = trim($text);
+                    return '<mtext dir="rtl" style="font-family: \'Amiri\', sans-serif;">' . $text . '</mtext>';
                 }, $part);
             }
             $htmlContent .= $part;
