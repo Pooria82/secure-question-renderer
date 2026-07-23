@@ -70,6 +70,9 @@ class CompileSecurePdfJob implements ShouldQueue
                     $mpdf->AddPage();
                 }
 
+                // Force mPDF to mark page as dirty so it doesn't drop the last page when using absolute image positioning
+                $mpdf->WriteHTML('<div style="position: absolute; width: 1px; height: 1px; visibility: hidden;">&nbsp;</div>');
+
                 $imagePath = $disk->path($file);
                 $mpdf->Image($imagePath, 0, 0, 210, 297, 'png', '', true, false);
                 $index++;

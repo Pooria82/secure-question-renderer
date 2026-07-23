@@ -41,70 +41,21 @@ class PrepareWordDocumentJob implements ShouldQueue
 
         // 1. Convert DOCX to HTML with MathML using Pandoc, then HTML to PDF via Gotenberg Chromium
         $filename = pathinfo($this->inputPath, PATHINFO_FILENAME);
-        $htmlPath = $tempDirPath . '/' . $filename . '.html';
         $pdfPath = $tempDirPath . '/' . $filename . '.pdf';
 
-        $process = new Process([
-            'pandoc',
-            $this->inputPath,
-            '-f', 'docx',
-            '-t', 'html',
-            '--embed-resources',
-            '--standalone',
-            '--mathml',
-            '-o', $htmlPath
-        ]);
-        $process->setTimeout(600);
-        $process->run();
-
-        if (!$process->isSuccessful()) {
-            throw new RenderFailureException('Pandoc conversion failed: ' . $process->getErrorOutput());
-        }
-
-        $htmlContent = file_get_contents($htmlPath);
-        
-        // Inject custom CSS to fix RTL/LTR alignment and prevent Gotenberg Chromium truncation
-        $customCss = <<<CSS
-<style>
-    /* Override Pandoc's default max-width which causes narrow column truncation */
-    html, body {
-        max-width: 100% !important;
-        margin: 0 !important;
-        padding: 20px !important;
-        font-family: 'Amiri', 'Noto Sans Arabic', 'Arial', sans-serif !important;
-        direction: rtl !important;
-        text-align: right !important;
-        overflow: visible !important;
-    }
-    /* Auto-detect text direction based on content for all text elements */
-    p, div, span, table, td, th, h1, h2, h3, h4, h5, h6, li { 
-        direction: rtl !important;
-        text-align: right !important; 
-        overflow: visible !important;
-    }
-    table { width: 100% !important; display: table !important; overflow: visible !important; }
-    tr { page-break-inside: avoid !important; }
-    /* Ensure math blocks do not break layouts */
-    math { max-width: 100%; overflow: visible !important; }
-    pre, code, .sourceCode { overflow: visible !important; white-space: pre-wrap !important; }
-</style>
-CSS;
-        $htmlContent = str_replace('</head>', $customCss . "\n</head>", $htmlContent);
-
-        $response = \Illuminate\Support\Facades\Http::timeout(600)->attach(
-            'files', $htmlContent, 'index.html'
-        )->post('http://gotenberg:3000/forms/chromium/convert/html', [
-            'marginTop' => 0,
-            'marginBottom' => 0,
-            'marginLeft' => 0,
-            'marginRight' => 0,
-            'waitDelay' => '2s' // Wait for MathML to fully render
-        ]);
+        // 1. Convert DOCX to PDF using Gotenberg LibreOffice
+        $response = \Illuminate\Support\Facades\Http::timeout(600)
+            ->attach(
+                'files', file_get_contents($this->inputPath), basename($this->inputPath)
+            )
+            ->post('http://gotenberg:3000/forms/libreoffice/convert', [
+                // Optional Gotenberg settings can be provided here if needed
+            ]);
 
         if ($response->successful()) {
             file_put_contents($pdfPath, $response->body());
         } else {
-            throw new RenderFailureException('Gotenberg conversion failed: ' . $response->body());
+            throw new RenderFailureException('Gotenberg LibreOffice conversion failed: ' . $response->body());
         }
 
         if (!file_exists($pdfPath)) {
