@@ -103,12 +103,21 @@ class PrepareWordDocumentJob implements ShouldQueue
 
         // Isolate LTR text (English, plain text math formulas like f(x)=0) inside RTL paragraphs to prevent Chromium BIDI scrambling.
         // We only target text nodes (content between > and <) to avoid breaking HTML tags or attributes.
-        $htmlContent = preg_replace_callback('/(>)([^<]+)(<)/', function ($matches) {
-            $text = $matches[2];
-            // Match sequences starting/ending with alphanumeric, containing allowed punctuation in between
-            $text = preg_replace('/([a-zA-Z0-9][a-zA-Z0-9\(\)\=\+\-\*\/\.\, ]*[a-zA-Z0-9]|[a-zA-Z0-9])/i', '<span dir="ltr" style="unicode-bidi: embed;">$1</span>', $text);
-            return $matches[1] . $text . $matches[3];
-        }, $htmlContent);
+        // We MUST skip <math> blocks completely so we don't inject spans into MathML elements and break them.
+        $parts = preg_split('/(<math\b.*?>.*?<\/math>)/is', $htmlContent, -1, PREG_SPLIT_DELIM_CAPTURE);
+        $htmlContent = "";
+        foreach ($parts as $i => $part) {
+            if ($i % 2 === 0) {
+                // Outside math tags, apply our text node regex
+                $part = preg_replace_callback('/(>)([^<]+)(<)/', function ($matches) {
+                    $text = $matches[2];
+                    // Match sequences starting/ending with alphanumeric, containing allowed punctuation in between
+                    $text = preg_replace('/([a-zA-Z0-9][a-zA-Z0-9\(\)\=\+\-\*\/\.\, ]*[a-zA-Z0-9]|[a-zA-Z0-9])/i', '<span dir="ltr" style="unicode-bidi: embed;">$1</span>', $text);
+                    return $matches[1] . $text . $matches[3];
+                }, $part);
+            }
+            $htmlContent .= $part;
+        }
 
         // Inject custom CSS to enforce RTL alignment, isolate MathML, format tables, and preserve code blocks
         $customCss = <<<CSS
