@@ -13,7 +13,7 @@ class GhostscriptRasterizerService implements PdfRasterizerInterface
     public function rasterize(string $pdfPath, string $outputDir): array
     {
         $resolution = config('secure-pdf.processing.ghostscript_resolution', 300);
-        $outputPattern = $outputDir . '/page_%04d.png';
+        $outputPattern = $outputDir.'/page_%04d.png';
 
         $process = new Process([
             'gs',
@@ -27,8 +27,8 @@ class GhostscriptRasterizerService implements PdfRasterizerInterface
             '-sDEVICE=png16m',
             '-dTextAlphaBits=4',
             '-dGraphicsAlphaBits=4',
-            '-r' . $resolution,
-            '-sOutputFile=' . $outputPattern,
+            '-r'.$resolution,
+            '-sOutputFile='.$outputPattern,
             $pdfPath,
         ]);
 
@@ -36,16 +36,17 @@ class GhostscriptRasterizerService implements PdfRasterizerInterface
         $process->run();
 
         if (! $process->isSuccessful()) {
-            throw new RenderFailureException('Bulk Ghostscript rasterization failed: ' . $process->getErrorOutput());
+            throw new RenderFailureException('Bulk Ghostscript rasterization failed: '.$process->getErrorOutput());
         }
 
         // Retrieve generated PNGs
-        $files = glob($outputDir . '/page_*.png');
+        $files = glob($outputDir.'/page_*.png');
         if ($files === false) {
             return [];
         }
 
         sort($files);
+
         return $files;
     }
 }

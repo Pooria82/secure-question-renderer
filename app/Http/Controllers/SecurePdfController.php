@@ -11,6 +11,7 @@ use App\Services\SecurePdfGenerationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 
@@ -63,6 +64,7 @@ class SecurePdfController extends Controller
             if (isset($absolutePath) && file_exists($absolutePath)) {
                 @unlink($absolutePath);
             }
+
             return response()->json(['error' => $e->getMessage()], 422);
         } catch (\Throwable $e) {
             if (isset($absolutePath) && file_exists($absolutePath)) {
@@ -96,11 +98,11 @@ class SecurePdfController extends Controller
             return response()->json(['error' => 'PDF compilation failed during page rendering.'], 500);
         }
 
-        if (\Illuminate\Support\Facades\Cache::get('compile_failed_'.$batchId)) {
+        if (Cache::get('compile_failed_'.$batchId)) {
             return response()->json(['error' => 'PDF compilation failed during final assembly.'], 500);
         }
 
-        if (\Illuminate\Support\Facades\Cache::get('compiling_'.$batchId)) {
+        if (Cache::get('compiling_'.$batchId)) {
             return response()->json([
                 'status' => 'compiling',
                 'progress' => 100,

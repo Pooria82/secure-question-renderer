@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
-use App\Services\GotenbergClientService;
+use App\Contracts\HtmlToPdfConverterInterface;
+use App\Contracts\PdfRasterizerInterface;
 use App\Services\HtmlSanitizerService;
-use App\Services\PdfPageCounterService;
 use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -36,8 +36,8 @@ class PrepareJsonDocumentJob implements ShouldQueue
 
     public function handle(
         HtmlSanitizerService $sanitizerService,
-        \App\Contracts\HtmlToPdfConverterInterface $gotenbergService,
-        \App\Contracts\PdfRasterizerInterface $rasterizerService
+        HtmlToPdfConverterInterface $gotenbergService,
+        PdfRasterizerInterface $rasterizerService
     ): void {
         if ($this->batch()?->cancelled()) {
             return;

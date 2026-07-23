@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
-use App\Services\DocumentConverterService;
-use App\Services\GotenbergClientService;
+use App\Contracts\DocumentToHtmlConverterInterface;
+use App\Contracts\HtmlToPdfConverterInterface;
+use App\Contracts\PdfRasterizerInterface;
 use App\Services\HtmlSanitizerService;
-use App\Services\PdfPageCounterService;
 use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -35,10 +35,10 @@ class PrepareWordDocumentJob implements ShouldQueue
     }
 
     public function handle(
-        \App\Contracts\DocumentToHtmlConverterInterface $converterService,
+        DocumentToHtmlConverterInterface $converterService,
         HtmlSanitizerService $sanitizerService,
-        \App\Contracts\HtmlToPdfConverterInterface $gotenbergService,
-        \App\Contracts\PdfRasterizerInterface $rasterizerService
+        HtmlToPdfConverterInterface $gotenbergService,
+        PdfRasterizerInterface $rasterizerService
     ): void {
         if ($this->batch()?->cancelled()) {
             return;

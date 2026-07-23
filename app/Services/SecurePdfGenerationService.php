@@ -8,6 +8,7 @@ use App\Contracts\QuestionParserInterface;
 use App\Jobs\CompileSecurePdfJob;
 use Illuminate\Bus\Batch;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Throwable;
@@ -35,7 +36,7 @@ class SecurePdfGenerationService
             $batch = Bus::batch($jobs)
                 ->then(function (Batch $batch) use ($tempDir, $outputFilename) {
                     // This will execute after all jobs are successfully completed
-                    \Illuminate\Support\Facades\Cache::put('compiling_'.$batch->id, true, 86400);
+                    Cache::put('compiling_'.$batch->id, true, 86400);
                     dispatch(new CompileSecurePdfJob($tempDir, $outputFilename, $batch->id));
                 })
                 ->catch(function (Batch $batch, Throwable $e) use ($tempDir) {

@@ -2,6 +2,14 @@
 
 namespace App\Providers;
 
+use App\Contracts\DocumentToHtmlConverterInterface;
+use App\Contracts\HtmlToPdfConverterInterface;
+use App\Contracts\PdfPageCounterInterface;
+use App\Contracts\PdfRasterizerInterface;
+use App\Services\DocumentConverterService;
+use App\Services\GhostscriptRasterizerService;
+use App\Services\GotenbergClientService;
+use App\Services\PdfPageCounterService;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -12,23 +20,23 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(
-            \App\Contracts\HtmlToPdfConverterInterface::class,
-            \App\Services\GotenbergClientService::class
+            HtmlToPdfConverterInterface::class,
+            GotenbergClientService::class
         );
 
         $this->app->bind(
-            \App\Contracts\DocumentToHtmlConverterInterface::class,
-            \App\Services\DocumentConverterService::class
+            DocumentToHtmlConverterInterface::class,
+            DocumentConverterService::class
         );
 
         $this->app->bind(
-            \App\Contracts\PdfPageCounterInterface::class,
-            \App\Services\PdfPageCounterService::class
+            PdfPageCounterInterface::class,
+            PdfPageCounterService::class
         );
 
         $this->app->bind(
-            \App\Contracts\PdfRasterizerInterface::class,
-            \App\Services\GhostscriptRasterizerService::class
+            PdfRasterizerInterface::class,
+            GhostscriptRasterizerService::class
         );
     }
 

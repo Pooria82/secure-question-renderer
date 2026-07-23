@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
+use App\Contracts\PdfPageCounterInterface;
 use App\Exceptions\PageCountMismatchException;
-use App\Services\PdfPageCounterService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Mpdf\Mpdf;
 use Mpdf\Output\Destination;
@@ -33,7 +34,7 @@ class CompileSecurePdfJob implements ShouldQueue
         $this->batchId = $batchId;
     }
 
-    public function handle(\App\Contracts\PdfPageCounterInterface $pageCounterService): void
+    public function handle(PdfPageCounterInterface $pageCounterService): void
     {
         $disk = Storage::disk('local');
         $directoryPath = $this->tempDir;
@@ -64,10 +65,10 @@ class CompileSecurePdfJob implements ShouldQueue
             $disk->makeDirectory('secure_pdfs');
 
             if (class_exists('\Imagick')) {
-                $imagick = new \Imagick();
+                $imagick = new \Imagick;
                 foreach ($imageFiles as $file) {
                     $imagePath = $disk->path($file);
-                    $page = new \Imagick();
+                    $page = new \Imagick;
                     $page->readImage($imagePath);
                     $page->setImageFormat('pdf');
                     $imagick->addImage($page);
@@ -112,13 +113,13 @@ class CompileSecurePdfJob implements ShouldQueue
 
         } catch (Throwable $e) {
             if ($this->batchId) {
-                \Illuminate\Support\Facades\Cache::put('compile_failed_'.$this->batchId, true, 86400);
+                Cache::put('compile_failed_'.$this->batchId, true, 86400);
             }
             report($e);
             throw $e; // Rethrow to mark job as failed
         } finally {
             if ($this->batchId) {
-                \Illuminate\Support\Facades\Cache::forget('compiling_'.$this->batchId);
+                Cache::forget('compiling_'.$this->batchId);
             }
             if ($disk->exists($directoryPath)) {
                 $disk->deleteDirectory($directoryPath);
