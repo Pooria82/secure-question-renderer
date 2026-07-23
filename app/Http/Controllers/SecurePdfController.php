@@ -56,7 +56,7 @@ class SecurePdfController extends Controller
             return response()->json([
                 'message' => 'Secure PDF generation has started.',
                 'batch_id' => $batchId,
-                'status_url' => url("/api/download/{$batchId}"),
+                'status_url' => url("/api/download/{$batchId}?filename={$outputFilename}"),
                 'output_filename' => $outputFilename,
             ], 202);
 
