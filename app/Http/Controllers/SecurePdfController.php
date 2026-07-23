@@ -123,6 +123,6 @@ class SecurePdfController extends Controller
 
         return response()->download($path, $filename, [
             'Content-Type' => 'application/pdf',
-        ]);
+        ])->deleteFileAfterSend(true);
     }
 }
