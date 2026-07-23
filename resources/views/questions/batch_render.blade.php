@@ -47,17 +47,33 @@
         function getDirection($text) {
             $clean = html_entity_decode($text ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8');
             $clean = strip_tags($clean);
-            // Remove all numbers, whitespace, punctuation, and symbols from the beginning
+            // For questions, remove all numbers, whitespace, punctuation, and symbols from the beginning
             $clean = preg_replace('/^[\d\s\p{P}\p{S}\p{Z}\p{C}]+/u', '', $clean);
-            // If string is empty after stripping, default to rtl (most safe for mixed exams where numbers are often Persian options)
             if (empty(trim($clean))) {
                 return 'rtl'; // Fallback
             }
             return preg_match('/^[\p{Arabic}]/u', $clean) ? 'rtl' : 'ltr';
         }
         
+        function getOptionDirection($text) {
+            $clean = html_entity_decode($text ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            // If it contains a math tag, it's formulaic
+            if (stripos($clean, '<math') !== false) {
+                return 'ltr';
+            }
+            $clean = strip_tags($clean);
+            // Only remove whitespace, punctuation, symbols. KEEP DIGITS!
+            $clean = preg_replace('/^[\s\p{P}\p{S}\p{Z}\p{C}]+/u', '', $clean);
+            
+            if (empty(trim($clean))) {
+                return 'ltr'; // Fallback for pure symbols
+            }
+            // If it starts with an Arabic character or Persian digit, it's Persian/Arabic
+            return preg_match('/^[\p{Arabic}]/u', $clean) ? 'rtl' : 'ltr';
+        }
+        
         function sanitizeWysiwyg($text) {
-            if (empty($text)) return '';
+            if (trim((string)$text) === '') return '';
             // Remove text-align and direction from style attributes
             $text = preg_replace('/(text-align|direction)\s*:\s*[^;"\']+[;]?/i', '', $text);
             // Remove dir="..." and align="..." attributes
@@ -82,8 +98,9 @@
             @foreach($question['options'] ?? [] as $option)
                 @php
                     $optText = sanitizeWysiwyg($option);
+                    $optDir = getOptionDirection($optText);
                 @endphp
-                <li class="option-item">
+                <li class="option-item" dir="{{ $optDir }}">
                     <bdi>{!! $optText !!}</bdi>
                 </li>
             @endforeach
