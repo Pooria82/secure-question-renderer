@@ -60,8 +60,14 @@ class SecurePdfController extends Controller
             ], 202);
 
         } catch (InputValidationException $e) {
+            if (isset($absolutePath) && file_exists($absolutePath)) {
+                @unlink($absolutePath);
+            }
             return response()->json(['error' => $e->getMessage()], 422);
         } catch (\Throwable $e) {
+            if (isset($absolutePath) && file_exists($absolutePath)) {
+                @unlink($absolutePath);
+            }
             report($e);
 
             return response()->json(['error' => 'An unexpected error occurred processing your request.'], 500);
@@ -87,7 +93,18 @@ class SecurePdfController extends Controller
         }
 
         if ($batch->hasFailures()) {
-            return response()->json(['error' => 'PDF compilation failed during processing.'], 500);
+            return response()->json(['error' => 'PDF compilation failed during page rendering.'], 500);
+        }
+
+        if (\Illuminate\Support\Facades\Cache::get('compile_failed_'.$batchId)) {
+            return response()->json(['error' => 'PDF compilation failed during final assembly.'], 500);
+        }
+
+        if (\Illuminate\Support\Facades\Cache::get('compiling_'.$batchId)) {
+            return response()->json([
+                'status' => 'compiling',
+                'progress' => 100,
+            ]);
         }
 
         // Normally, the filename should be stored in a database associated with the batch ID.

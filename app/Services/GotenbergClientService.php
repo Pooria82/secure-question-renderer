@@ -33,17 +33,21 @@ class GotenbergClientService
             ]);
         } catch (ConnectionException $e) {
             if ($gotenbergEndpoint !== 'http://localhost:3000/forms/chromium/convert/html') {
-                $response = Http::timeout(600)->attach(
-                    'files', $htmlContent, 'index.html'
-                )->post('http://localhost:3000/forms/chromium/convert/html', [
-                    'marginTop' => 0,
-                    'marginBottom' => 0,
-                    'marginLeft' => 0,
-                    'marginRight' => 0,
-                    'waitDelay' => '2s',
-                    'preferCSSPageSize' => true,
-                    'printBackground' => true,
-                ]);
+                try {
+                    $response = Http::timeout(600)->attach(
+                        'files', $htmlContent, 'index.html'
+                    )->post('http://localhost:3000/forms/chromium/convert/html', [
+                        'marginTop' => 0,
+                        'marginBottom' => 0,
+                        'marginLeft' => 0,
+                        'marginRight' => 0,
+                        'waitDelay' => '2s',
+                        'preferCSSPageSize' => true,
+                        'printBackground' => true,
+                    ]);
+                } catch (ConnectionException $fallbackEx) {
+                    throw new RenderFailureException('Gotenberg fallback connection failed: '.$fallbackEx->getMessage(), 0, $fallbackEx);
+                }
             } else {
                 throw new RenderFailureException('Gotenberg connection failed: '.$e->getMessage(), 0, $e);
             }

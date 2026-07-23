@@ -52,30 +52,37 @@ class PrepareWordDocumentJob implements ShouldQueue
         $htmlPath = $tempDirPath.'/'.$filename.'.html';
         $pdfPath = $tempDirPath.'/'.$filename.'.pdf';
 
-        // 1. Convert DOCX to HTML
-        $converterService->convertDocxToHtml($resolvedInputPath, $htmlPath);
+        try {
+            // 1. Convert DOCX to HTML
+            $converterService->convertDocxToHtml($resolvedInputPath, $htmlPath);
 
-        // 2. Sanitize HTML
-        $htmlContent = file_get_contents($htmlPath);
-        $htmlContent = $sanitizerService->sanitize($htmlContent);
+            // 2. Sanitize HTML
+            $htmlContent = file_get_contents($htmlPath);
+            $htmlContent = $sanitizerService->sanitize($htmlContent);
 
-        // 3. Convert HTML to PDF via Gotenberg
-        $gotenbergService->convertHtmlToPdf($htmlContent, $pdfPath);
+            // 3. Convert HTML to PDF via Gotenberg
+            $gotenbergService->convertHtmlToPdf($htmlContent, $pdfPath);
 
-        // 4. Count PDF pages
-        $pages = $pageCounterService->countPages($pdfPath);
+            // 4. Count PDF pages
+            $pages = $pageCounterService->countPages($pdfPath);
 
-        // Write metadata for CompileSecurePdfJob
-        file_put_contents($tempDirPath.'/metadata.json', json_encode(['expected_pages' => $pages]));
+            // Write metadata for CompileSecurePdfJob
+            file_put_contents($tempDirPath.'/metadata.json', json_encode(['expected_pages' => $pages]));
 
-        // Dispatch a job for each page
-        $jobs = [];
-        for ($i = 0; $i < $pages; $i++) {
-            $jobs[] = new RenderSecureVisualPageJob($pdfPath, $i, $this->tempDir);
-        }
+            // Dispatch a job for each page
+            $jobs = [];
+            for ($i = 0; $i < $pages; $i++) {
+                $jobs[] = new RenderSecureVisualPageJob($pdfPath, $i, $this->tempDir);
+            }
 
-        if (! empty($jobs)) {
-            $this->batch()?->add($jobs);
+            if (! empty($jobs)) {
+                $this->batch()?->add($jobs);
+            }
+        } finally {
+            // Clean up the uploaded input file if it was placed in the uploads directory
+            if (str_starts_with($resolvedInputPath, storage_path('app/private/uploads')) && File::exists($resolvedInputPath)) {
+                File::delete($resolvedInputPath);
+            }
         }
     }
 

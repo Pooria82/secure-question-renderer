@@ -15,6 +15,10 @@ class PdfPageCounterService
      */
     public function countPages(string $pdfPath): int
     {
+        if (! file_exists($pdfPath)) {
+            throw new RenderFailureException('PDF file not found for page counting.');
+        }
+
         $pages = 0;
 
         if (class_exists('\Imagick')) {

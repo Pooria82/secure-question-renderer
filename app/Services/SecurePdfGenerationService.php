@@ -28,20 +28,31 @@ class SecurePdfGenerationService
         $tempDir = 'temp_renders_'.Str::random(10);
         Storage::disk('local')->makeDirectory($tempDir);
 
-        // Generate jobs using strategy pattern
-        $jobs = $parser->generateJobs($inputPath, $tempDir);
+        try {
+            // Generate jobs using strategy pattern
+            $jobs = $parser->generateJobs($inputPath, $tempDir);
 
-        $batch = Bus::batch($jobs)
-            ->then(function (Batch $batch) use ($tempDir, $outputFilename) {
-                // This will execute after all jobs are successfully completed
-                dispatch(new CompileSecurePdfJob($tempDir, $outputFilename));
-            })
-            ->catch(function (Batch $batch, Throwable $e) {
-                // Handle batch failure if needed
-            })
-            ->name('Secure Document Compilation')
-            ->dispatch();
+            $batch = Bus::batch($jobs)
+                ->then(function (Batch $batch) use ($tempDir, $outputFilename) {
+                    // This will execute after all jobs are successfully completed
+                    \Illuminate\Support\Facades\Cache::put('compiling_'.$batch->id, true, 86400);
+                    dispatch(new CompileSecurePdfJob($tempDir, $outputFilename, $batch->id));
+                })
+                ->catch(function (Batch $batch, Throwable $e) use ($tempDir) {
+                    // Handle batch failure gracefully and clean up orphaned temporary directory
+                    if (Storage::disk('local')->exists($tempDir)) {
+                        Storage::disk('local')->deleteDirectory($tempDir);
+                    }
+                })
+                ->name('Secure Document Compilation')
+                ->dispatch();
 
-        return $batch->id;
+            return $batch->id;
+        } catch (Throwable $e) {
+            if (Storage::disk('local')->exists($tempDir)) {
+                Storage::disk('local')->deleteDirectory($tempDir);
+            }
+            throw $e;
+        }
     }
 }

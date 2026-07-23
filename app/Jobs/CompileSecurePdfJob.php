@@ -24,10 +24,13 @@ class CompileSecurePdfJob implements ShouldQueue
 
     private string $outputFilename;
 
-    public function __construct(string $tempDir, string $outputFilename)
+    private string $batchId;
+
+    public function __construct(string $tempDir, string $outputFilename, string $batchId = '')
     {
         $this->tempDir = $tempDir;
         $this->outputFilename = $outputFilename;
+        $this->batchId = $batchId;
     }
 
     public function handle(PdfPageCounterService $pageCounterService): void
@@ -96,9 +99,15 @@ class CompileSecurePdfJob implements ShouldQueue
             }
 
         } catch (Throwable $e) {
+            if ($this->batchId) {
+                \Illuminate\Support\Facades\Cache::put('compile_failed_'.$this->batchId, true, 86400);
+            }
             report($e);
             throw $e; // Rethrow to mark job as failed
         } finally {
+            if ($this->batchId) {
+                \Illuminate\Support\Facades\Cache::forget('compiling_'.$this->batchId);
+            }
             if ($disk->exists($directoryPath)) {
                 $disk->deleteDirectory($directoryPath);
             }
