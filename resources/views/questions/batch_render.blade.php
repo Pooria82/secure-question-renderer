@@ -35,46 +35,53 @@
             margin-bottom: 10px;
         }
         /* Isolate MathML formulas for LTR rendering */
-        /* Isolate MathML formulas for LTR rendering */
-        math, [dir="ltr"] math, [dir="rtl"] math, math * {
+        math, math * {
             direction: ltr !important;
             unicode-bidi: embed !important;
             text-align: initial !important;
-        }
-        
-        /* Enforce alignment overriding WYSIWYG inline styles */
-        [dir="ltr"], [dir="ltr"] * {
-            text-align: left !important;
-        }
-        [dir="rtl"], [dir="rtl"] * {
-            text-align: right !important;
         }
     </style>
 </head>
 <body>
     @php
         function getDirection($text) {
-            $clean = strip_tags($text);
+            $clean = html_entity_decode($text ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $clean = strip_tags($clean);
             // Remove all numbers, whitespace, punctuation, and symbols from the beginning
-            $clean = preg_replace('/^[\d\s\p{P}\p{S}]+/u', '', $clean);
+            $clean = preg_replace('/^[\d\s\p{P}\p{S}\p{Z}\p{C}]+/u', '', $clean);
             return preg_match('/^[\p{Arabic}]/u', $clean) ? 'rtl' : 'ltr';
+        }
+        
+        function sanitizeWysiwyg($text) {
+            if (empty($text)) return '';
+            // Remove text-align and direction from style attributes
+            $text = preg_replace('/(text-align|direction)\s*:\s*[^;"\']+[;]?/i', '', $text);
+            // Remove dir="..." and align="..." attributes
+            $text = preg_replace('/\s+(dir|align)=["\'][^"\']*["\']/i', '', $text);
+            // Remove empty style attributes left behind
+            $text = preg_replace('/\s+style=["\']\s*["\']/i', '', $text);
+            // Remove empty p tags
+            $text = preg_replace('/<p><\/p>/i', '', $text);
+            return $text;
         }
     @endphp
     @foreach($questions as $question)
     @php
-        $qDir = getDirection($question['text'] ?? '');
+        $qText = sanitizeWysiwyg($question['text'] ?? 'Missing Question Text');
+        $qDir = getDirection($qText);
     @endphp
     <div class="question-container" dir="{{ $qDir }}">
         <div class="question-text">
-            <bdi dir="{{ $qDir }}">{!! $question['text'] ?? 'Missing Question Text' !!}</bdi>
+            <bdi dir="{{ $qDir }}">{!! $qText !!}</bdi>
         </div>
         <ul class="options-list">
             @foreach($question['options'] ?? [] as $option)
                 @php
-                    $optDir = getDirection($option);
+                    $optText = sanitizeWysiwyg($option);
+                    $optDir = getDirection($optText);
                 @endphp
                 <li class="option-item" dir="{{ $optDir }}">
-                    <bdi dir="{{ $optDir }}">{!! $option !!}</bdi>
+                    <bdi dir="{{ $optDir }}">{!! $optText !!}</bdi>
                 </li>
             @endforeach
         </ul>

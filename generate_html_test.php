@@ -6,14 +6,13 @@ $kernel->bootstrap();
 
 $html = \Illuminate\Support\Facades\View::make('questions.batch_render', ['questions' => [
     [
-        'text' => '<p style="text-align: right;">(English) What is your name?</p>',
-        'options' => ['<span style="text-align: right;">(A) John</span>', '(B) Doe']
-    ],
-    [
-        'text' => '<p style="text-align: center;">سوال فارسی با پرانتز (تست)</p>',
-        'options' => ['(الف) گزینه یک', 'ب) گزینه دو']
+        'text' => '<p dir="rtl" align="right" style="text-align: right; direction:rtl;">37. Which sentence has the word with a different vowel sound than the others?</p>',
+        'options' => [
+            '<p dir="rtl" align="right" style="text-align: right;">(A) There were ten eggs in the nest.</p>',
+            '<p dir="rtl" align="right" style="text-align: right;">(B) My desk is next to the bed.</p>'
+        ]
     ]
 ]])->render();
 
-file_put_contents('C:/Users/Pooria/.gemini/antigravity-cli/brain/2b531490-b814-4f40-a48d-79ad0a4b9e35/test_html_output4.html', $html);
+file_put_contents('C:/Users/Pooria/.gemini/antigravity-cli/brain/2b531490-b814-4f40-a48d-79ad0a4b9e35/test_html_output5.html', $html);
 echo "HTML written.\n";
