@@ -105,8 +105,6 @@ class SecurePdfControllerTest extends TestCase
         ]);
 
         $response->assertStatus(422);
-        $response->assertJsonStructure(['error']);
-        // From QuestionProcessingService validation rules, it catches the lack of options
-        $this->assertStringContainsString('Question data validation failed', $response->json('error'));
+        $response->assertJsonValidationErrors(['file']);
     }
 }

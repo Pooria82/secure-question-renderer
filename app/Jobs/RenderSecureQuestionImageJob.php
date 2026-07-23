@@ -58,7 +58,7 @@ class RenderSecureQuestionImageJob implements ShouldQueue
 
             Browsershot::html($html)
                 ->noSandbox()
-                ->setChromePath('/usr/bin/chromium')
+                ->setChromePath(config('secure-pdf.chromium.path', '/usr/bin/chromium'))
                 ->windowSize(1190, 1684)
                 ->waitUntilNetworkIdle()
                 ->save($imagePath);

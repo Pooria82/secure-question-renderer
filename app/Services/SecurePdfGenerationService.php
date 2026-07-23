@@ -15,13 +15,13 @@ class SecurePdfGenerationService
     /**
      * Dispatch the job batch to generate a secure PDF.
      *
-     * @param \App\Strategies\QuestionParserInterface $parser
+     * @param \App\Contracts\QuestionParserInterface $parser
      * @param string $inputPath Path to the input file
      * @param string $outputFilename The name of the final PDF file
      * @return string The Batch ID
      * @throws Throwable
      */
-    public function generate(\App\Strategies\QuestionParserInterface $parser, string $inputPath, string $outputFilename): string
+    public function generate(\App\Contracts\QuestionParserInterface $parser, string $inputPath, string $outputFilename): string
     {
         $tempDir = 'temp_renders_' . Str::random(10);
         \Illuminate\Support\Facades\Storage::disk('local')->makeDirectory($tempDir);

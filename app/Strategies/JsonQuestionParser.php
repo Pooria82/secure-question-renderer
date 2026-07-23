@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Strategies;
 
+use App\Contracts\QuestionParserInterface;
 use App\Exceptions\InputValidationException;
 use JsonException;
 
@@ -45,8 +46,9 @@ class JsonQuestionParser implements QuestionParserInterface
         \Illuminate\Support\Facades\Storage::disk('local')->put($tempDir . '/metadata.json', json_encode(['expected_pages' => $pages]));
 
         $jobs = [];
-        foreach ($questions as $question) {
-            $jobs[] = new \App\Jobs\RenderSecureQuestionImageJob($question, $tempDir);
+        foreach ($questions as $questionArray) {
+            $questionDto = \App\DTOs\QuestionData::fromArray($questionArray);
+            $jobs[] = new \App\Jobs\RenderSecureQuestionImageJob($questionDto->toArray(), $tempDir);
         }
 
         return $jobs;

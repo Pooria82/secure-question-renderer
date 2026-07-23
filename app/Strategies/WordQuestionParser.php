@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Strategies;
 
+use App\Contracts\QuestionParserInterface;
 use App\Exceptions\InputValidationException;
 use Throwable;
 use ZipArchive;

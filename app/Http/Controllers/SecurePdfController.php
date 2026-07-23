@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Exceptions\InputValidationException;
+use App\Factories\ParserFactory;
+use App\Http\Requests\ConvertFileRequest;
 use App\Services\SecurePdfGenerationService;
-use App\Strategies\JsonQuestionParser;
-use App\Strategies\WordQuestionParser;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Bus;
@@ -17,21 +17,19 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 class SecurePdfController extends Controller
 {
     private SecurePdfGenerationService $pdfService;
+    private ParserFactory $parserFactory;
 
-    public function __construct(SecurePdfGenerationService $pdfService)
+    public function __construct(SecurePdfGenerationService $pdfService, ParserFactory $parserFactory)
     {
         $this->pdfService = $pdfService;
+        $this->parserFactory = $parserFactory;
     }
 
     /**
      * Handle the file upload and dispatch PDF generation batch.
      */
-    public function convert(Request $request): JsonResponse
+    public function convert(ConvertFileRequest $request): JsonResponse
     {
-        $request->validate([
-            'file' => 'required|file|mimes:json,docx,doc|max:10240',
-        ]);
-
         $file = $request->file('file');
         $extension = strtolower($file->getClientOriginalExtension());
 
@@ -45,11 +43,7 @@ class SecurePdfController extends Controller
             $path = $file->storeAs('uploads', uniqid('file_') . '.' . $extension, 'local');
             $absolutePath = Storage::disk('local')->path($path);
 
-            $parser = match($extension) {
-                'json' => new JsonQuestionParser(),
-                'doc', 'docx' => new WordQuestionParser(),
-                default => null,
-            };
+            $parser = $this->parserFactory->make($extension);
 
             if (!$parser) {
                 return response()->json(['error' => 'Unsupported file format.'], 400);

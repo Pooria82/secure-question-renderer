@@ -6,7 +6,8 @@ namespace Tests\Unit;
 
 use App\Exceptions\InputValidationException;
 use App\Strategies\JsonQuestionParser;
-use PHPUnit\Framework\TestCase;
+use Illuminate\Support\Facades\Storage;
+use Tests\TestCase;
 
 class JsonQuestionParserTest extends TestCase
 {
@@ -15,6 +16,7 @@ class JsonQuestionParserTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        Storage::fake('local');
         $this->parser = new JsonQuestionParser();
     }
 
