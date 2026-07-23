@@ -1,5 +1,8 @@
 {
     "$schema": "https://www.schemastore.org/package.json",
+    "name": "secure-question-renderer",
+    "version": "1.0.0",
+    "description": "An enterprise-grade, secure, and scalable backend solution for converting question sets into aggressively protected, anti-OCR PDF files.",
     "private": true,
     "type": "module",
     "scripts": {

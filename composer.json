@@ -1,9 +1,9 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "pooria82/secure-question-renderer",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
+    "description": "An enterprise-grade, secure, and scalable backend solution for converting question sets into aggressively protected, anti-OCR PDF files.",
+    "keywords": ["laravel", "pdf", "security", "anti-ocr"],
     "license": "MIT",
     "require": {
         "php": "^8.3",
