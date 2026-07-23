@@ -4,9 +4,9 @@
 This project adheres to a Service-Oriented Architecture (SOA). We encapsulate core business logic within dedicated services, keeping our controllers thin and ensuring our code is reusable, testable, and maintainable.
 - `SecurePdfGenerationService`: Orchestrates the overall pipeline and batch dispatching.
 - `DocumentConverterService`: Wraps Pandoc conversion of DOCX to HTML.
-- `HtmlSanitizerService`: Manipulates HTML DOM using Regex to apply RTL and isolate MathML.
+- `GhostscriptRasterizerService`: Executes O(1) bulk rasterization of PDF pages to physical images.
+- `HtmlSanitizerService`: Manipulates HTML DOM to sanitize unwanted tracking tokens or dangerous tags before PDF rendering.
 - `GotenbergClientService`: Handles HTTP communication with the Gotenberg container.
-- `PdfPageCounterService`: Abstracts away the logic for counting PDF pages (Imagick / Regex).
 
 ## Strategy & Factory Pattern
 We employ the Strategy Pattern (`QuestionParserInterface`) handled by a `ParserFactory` to accommodate different input types (JSON and Word documents). This allows the application to cleanly define a family of input-processing algorithms, encapsulate each one, and make them interchangeable without modifying the controller or services that use them.
@@ -15,14 +15,11 @@ We employ the Strategy Pattern (`QuestionParserInterface`) handled by a `ParserF
 We use `QuestionData` DTOs to enforce standard properties (ID, text, options) across different input sources, ensuring our job processors receive strongly typed, validated data.
 
 ## Asynchronous Processing
-To ensure high performance and prevent HTTP timeouts during heavy operations, we utilize **Laravel Queues (Database driver)**. The resource-intensive HTML-to-Image rendering process is dispatched to the background.
-
-## Security & Anti-OCR Layers
-We utilize the `intervention/image` package to apply security watermarks and noise to the rendered output. This acts as an anti-OCR layer to protect the integrity and confidentiality of the generated images.
+To ensure high performance and prevent HTTP timeouts during heavy operations, we utilize **Laravel Queues (Database driver) via Laravel Batches**. The resource-intensive Image manipulation process is dispatched to the background, and dynamically scaled by queue workers.
 
 ## Technology Stack
-- **Browsershot (Puppeteer/Headless Chrome)**: For high-quality, pixel-perfect HTML to Image conversion.
-- **Intervention Image**: For watermarking and image manipulation.
-- **Gotenberg / Pandoc**: For Word to PDF conversion.
-- **mPDF**: For generating the final secured PDF compilation.
-- **Docker**: A fully containerized environment equipped with Node.js, Puppeteer, and all required OS-level dependencies for headless Chrome.
+- **Gotenberg (Chromium)**: For converting dynamic HTML into a primary layout PDF.
+- **Ghostscript**: For bulk-rasterizing the primary PDF into unselectable, flattened physical images.
+- **Intervention Image**: For anti-OCR watermarking, noise generation, and pixelation on the raw images.
+- **Imagick (Native PHP)**: For ultra-fast, memory-efficient stitching of the flattened images back into the final secure PDF payload.
+- **Docker**: A fully containerized environment equipped with Gotenberg, Ghostscript, Pandoc, and Nginx.
