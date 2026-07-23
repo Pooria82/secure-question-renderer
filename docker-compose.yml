@@ -39,7 +39,7 @@ services:
       dockerfile: Dockerfile
     container_name: queue
     restart: unless-stopped
-    command: php artisan queue:work --sleep=3 --tries=3
+    command: php artisan queue:listen --sleep=3 --tries=3
     volumes:
       - ./:/var/www
     networks:

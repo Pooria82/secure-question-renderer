@@ -99,3 +99,35 @@ The application adheres to the strictest data-minimization practices:
 - **Immediate Input Purging:** Uploaded `.json` and `.docx` files are `unlink()`ed milliseconds after they are loaded into memory.
 - **Self-Destructing Outputs:** The final PDF deletes itself from the disk the exact moment the client successfully downloads it (`deleteFileAfterSend(true)`).
 - **Cron Failsafe:** A scheduled daily Laravel task automatically prunes orphaned temporary directories in the event of a catastrophic server hardware crash.
+
+## 💾 Data Storage & The SQLite Database
+
+A common point of confusion is the role of the SQLite database (`database/database.sqlite`) in this application. 
+
+**Where are the PDFs stored?**
+The SQLite database **does not** store the uploaded files, nor the final PDFs. It is entirely incapable of serving files. 
+- All successfully generated secure PDFs are physically saved as standard files on the disk at: `/var/www/storage/app/private/secure_pdfs/`.
+- Once a client calls the download API endpoint, the application reads the PDF from that physical directory, streams it to the user, and immediately permanently deletes it.
+
+**So what is the SQLite Database used for?**
+The database acts as the nervous system for our background worker queues. It tracks:
+- **`job_batches`**: Keeps an exact count of how many pages (jobs) have successfully finished rendering for your document.
+- **`jobs`**: The raw queue payload of pending tasks awaiting processing.
+- **`failed_jobs`**: Logs of any pages that failed to render.
+
+---
+
+## 🛠️ Troubleshooting & Development
+
+If you encounter issues during development or testing, review the following:
+
+### 1. "PDF file not found" or Project Stuck
+If your API polling gets stuck, or returns `PDF file not found`, it means the background queue worker has crashed or is running outdated code.
+- **The Fix:** We have explicitly configured Docker to use `queue:listen` instead of `queue:work`. This forces the worker to hot-reload the PHP code on every job. However, if you add entirely new job classes or change dependencies, you should completely restart the queue worker:
+  ```bash
+  docker-compose restart queue
+  ```
+
+### 2. File Permission Errors (laravel.log or database.sqlite)
+If you are running Docker on Windows/Mac, volume mounts can occasionally overwrite container file permissions, blocking the application from writing to the logs or the database.
+- **The Fix:** This has been completely automated. The `Dockerfile` injects an `entrypoint.sh` script that aggressively resets file permissions using `chmod 777` on the `storage/` and `database/` directories every time the container boots. If you face issues, a simple `docker-compose restart app` will trigger the entrypoint to fix permissions automatically.
