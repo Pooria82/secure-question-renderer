@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Jobs\RenderSecureQuestionImageJob;
+use App\Contracts\QuestionParserInterface;
 use App\Jobs\CompileSecurePdfJob;
+use Illuminate\Bus\Batch;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -15,26 +17,26 @@ class SecurePdfGenerationService
     /**
      * Dispatch the job batch to generate a secure PDF.
      *
-     * @param \App\Contracts\QuestionParserInterface $parser
-     * @param string $inputPath Path to the input file
-     * @param string $outputFilename The name of the final PDF file
+     * @param  string  $inputPath  Path to the input file
+     * @param  string  $outputFilename  The name of the final PDF file
      * @return string The Batch ID
+     *
      * @throws Throwable
      */
-    public function generate(\App\Contracts\QuestionParserInterface $parser, string $inputPath, string $outputFilename): string
+    public function generate(QuestionParserInterface $parser, string $inputPath, string $outputFilename): string
     {
-        $tempDir = 'temp_renders_' . Str::random(10);
-        \Illuminate\Support\Facades\Storage::disk('local')->makeDirectory($tempDir);
+        $tempDir = 'temp_renders_'.Str::random(10);
+        Storage::disk('local')->makeDirectory($tempDir);
 
         // Generate jobs using strategy pattern
         $jobs = $parser->generateJobs($inputPath, $tempDir);
 
         $batch = Bus::batch($jobs)
-            ->then(function (\Illuminate\Bus\Batch $batch) use ($tempDir, $outputFilename) {
+            ->then(function (Batch $batch) use ($tempDir, $outputFilename) {
                 // This will execute after all jobs are successfully completed
                 dispatch(new CompileSecurePdfJob($tempDir, $outputFilename));
             })
-            ->catch(function (\Illuminate\Bus\Batch $batch, Throwable $e) {
+            ->catch(function (Batch $batch, Throwable $e) {
                 // Handle batch failure if needed
             })
             ->name('Secure Document Compilation')

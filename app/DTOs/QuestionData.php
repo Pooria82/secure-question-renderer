@@ -20,7 +20,7 @@ class QuestionData
             $data['options'] ?? []
         );
     }
-    
+
     public function toArray(): array
     {
         return [

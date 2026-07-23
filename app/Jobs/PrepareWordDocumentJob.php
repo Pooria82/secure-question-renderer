@@ -4,27 +4,28 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
+use App\Services\DocumentConverterService;
+use App\Services\GotenbergClientService;
+use App\Services\HtmlSanitizerService;
+use App\Services\PdfPageCounterService;
 use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\File;
-use App\Services\DocumentConverterService;
-use App\Services\HtmlSanitizerService;
-use App\Services\GotenbergClientService;
-use App\Services\PdfPageCounterService;
 
 class PrepareWordDocumentJob implements ShouldQueue
 {
     use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     private string $inputPath;
+
     private string $tempDir;
 
     public $timeout = 600;
+
     public $failOnTimeout = true;
 
     public function __construct(string $inputPath, string $tempDir)
@@ -43,13 +44,13 @@ class PrepareWordDocumentJob implements ShouldQueue
             return;
         }
 
-        $tempDirPath = storage_path('app/private/' . $this->tempDir);
+        $tempDirPath = storage_path('app/private/'.$this->tempDir);
         File::ensureDirectoryExists($tempDirPath);
 
         $resolvedInputPath = $this->resolveInputPath($this->inputPath);
         $filename = pathinfo($resolvedInputPath, PATHINFO_FILENAME);
-        $htmlPath = $tempDirPath . '/' . $filename . '.html';
-        $pdfPath = $tempDirPath . '/' . $filename . '.pdf';
+        $htmlPath = $tempDirPath.'/'.$filename.'.html';
+        $pdfPath = $tempDirPath.'/'.$filename.'.pdf';
 
         // 1. Convert DOCX to HTML
         $converterService->convertDocxToHtml($resolvedInputPath, $htmlPath);
@@ -65,7 +66,7 @@ class PrepareWordDocumentJob implements ShouldQueue
         $pages = $pageCounterService->countPages($pdfPath);
 
         // Write metadata for CompileSecurePdfJob
-        file_put_contents($tempDirPath . '/metadata.json', json_encode(['expected_pages' => $pages]));
+        file_put_contents($tempDirPath.'/metadata.json', json_encode(['expected_pages' => $pages]));
 
         // Dispatch a job for each page
         $jobs = [];
@@ -73,7 +74,7 @@ class PrepareWordDocumentJob implements ShouldQueue
             $jobs[] = new RenderSecureVisualPageJob($pdfPath, $i, $this->tempDir);
         }
 
-        if (!empty($jobs)) {
+        if (! empty($jobs)) {
             $this->batch()?->add($jobs);
         }
     }
@@ -83,7 +84,7 @@ class PrepareWordDocumentJob implements ShouldQueue
         if (file_exists($path)) {
             return $path;
         }
-        
+
         $normalized = str_replace('\\', '/', $path);
         if (preg_match('#(tests/Fixtures/.*)$#', $normalized, $matches)) {
             $candidate = base_path($matches[1]);

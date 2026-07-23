@@ -8,15 +8,16 @@ use App\Exceptions\InputValidationException;
 use App\Factories\ParserFactory;
 use App\Http\Requests\ConvertFileRequest;
 use App\Services\SecurePdfGenerationService;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class SecurePdfController extends Controller
 {
     private SecurePdfGenerationService $pdfService;
+
     private ParserFactory $parserFactory;
 
     public function __construct(SecurePdfGenerationService $pdfService, ParserFactory $parserFactory)
@@ -34,18 +35,18 @@ class SecurePdfController extends Controller
         $extension = strtolower($file->getClientOriginalExtension());
 
         try {
-            $outputFilename = 'secure_exam_' . time() . '.pdf';
+            $outputFilename = 'secure_exam_'.time().'.pdf';
 
             // Store file securely since queue worker/parser needs it after request terminates
-            \Illuminate\Support\Facades\File::ensureDirectoryExists(storage_path('app/private/uploads'));
-            \Illuminate\Support\Facades\File::ensureDirectoryExists(storage_path('app/private/secure_pdfs'));
+            File::ensureDirectoryExists(storage_path('app/private/uploads'));
+            File::ensureDirectoryExists(storage_path('app/private/secure_pdfs'));
 
-            $path = $file->storeAs('uploads', uniqid('file_') . '.' . $extension, 'local');
+            $path = $file->storeAs('uploads', uniqid('file_').'.'.$extension, 'local');
             $absolutePath = Storage::disk('local')->path($path);
 
             $parser = $this->parserFactory->make($extension);
 
-            if (!$parser) {
+            if (! $parser) {
                 return response()->json(['error' => 'Unsupported file format.'], 400);
             }
 
@@ -55,13 +56,13 @@ class SecurePdfController extends Controller
                 'message' => 'Secure PDF generation has started.',
                 'batch_id' => $batchId,
                 'status_url' => url("/api/download/{$batchId}"),
-                'output_filename' => $outputFilename
+                'output_filename' => $outputFilename,
             ], 202);
 
         } catch (InputValidationException $e) {
             return response()->json(['error' => $e->getMessage()], 422);
         } catch (\Throwable $e) {
-            return response()->json(['error' => 'An unexpected error occurred: ' . $e->getMessage() . "\n" . $e->getTraceAsString()], 500);
+            return response()->json(['error' => 'An unexpected error occurred: '.$e->getMessage()."\n".$e->getTraceAsString()], 500);
         }
     }
 
@@ -72,14 +73,14 @@ class SecurePdfController extends Controller
     {
         $batch = Bus::findBatch($batchId);
 
-        if (!$batch) {
+        if (! $batch) {
             return response()->json(['error' => 'Batch not found.'], 404);
         }
 
-        if (!$batch->finished()) {
+        if (! $batch->finished()) {
             return response()->json([
                 'status' => 'processing',
-                'progress' => $batch->progress()
+                'progress' => $batch->progress(),
             ]);
         }
 
@@ -91,13 +92,13 @@ class SecurePdfController extends Controller
         // For simplicity here, we assume the client passed the filename or we find the latest.
         // If not passed, we can't reliably guess the filename since it's timestamped.
         $filename = $request->query('filename');
-        if (!$filename) {
+        if (! $filename) {
             return response()->json(['error' => 'Filename query parameter is required to download.'], 400);
         }
 
-        $path = storage_path('app/private/secure_pdfs/' . $filename);
+        $path = storage_path('app/private/secure_pdfs/'.$filename);
 
-        if (!file_exists($path)) {
+        if (! file_exists($path)) {
             return response()->json(['error' => 'PDF file not found.'], 404);
         }
 

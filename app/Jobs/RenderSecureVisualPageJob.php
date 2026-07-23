@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
+use App\Exceptions\RenderFailureException;
 use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -11,19 +12,22 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Storage;
-use App\Exceptions\RenderFailureException;
-use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\ImageManager;
+use Symfony\Component\Process\Process;
 
 class RenderSecureVisualPageJob implements ShouldQueue
 {
     use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     private string $pdfPath;
+
     private int $pageIndex;
+
     private string $tempDir;
 
     public $timeout = 300; // Increased timeout for Imagick and Intervention
+
     public $failOnTimeout = true;
 
     public function __construct(string $pdfPath, int $pageIndex, string $tempDir)
@@ -46,9 +50,9 @@ class RenderSecureVisualPageJob implements ShouldQueue
             // 1. Convert specific PDF page to high-res PNG using Ghostscript directly
             // Imagick sometimes fails to render fonts or flatten complex PDFs properly
             $gsPage = $this->pageIndex + 1;
-            $pngBlobFile = tempnam(sys_get_temp_dir(), 'gs_') . '.png';
-            
-            $process = new \Symfony\Component\Process\Process([
+            $pngBlobFile = tempnam(sys_get_temp_dir(), 'gs_').'.png';
+
+            $process = new Process([
                 'gs',
                 '-q',
                 '-dQUIET',
@@ -61,24 +65,24 @@ class RenderSecureVisualPageJob implements ShouldQueue
                 '-dTextAlphaBits=4',
                 '-dGraphicsAlphaBits=4',
                 '-r300',
-                '-dFirstPage=' . $gsPage,
-                '-dLastPage=' . $gsPage,
-                '-sOutputFile=' . $pngBlobFile,
-                $this->pdfPath
+                '-dFirstPage='.$gsPage,
+                '-dLastPage='.$gsPage,
+                '-sOutputFile='.$pngBlobFile,
+                $this->pdfPath,
             ]);
-            
+
             $process->setTimeout(300);
             $process->run();
-            
-            if (!$process->isSuccessful()) {
-                throw new \Exception("Ghostscript failed: " . $process->getErrorOutput());
+
+            if (! $process->isSuccessful()) {
+                throw new \Exception('Ghostscript failed: '.$process->getErrorOutput());
             }
-            
+
             $pngBlob = file_get_contents($pngBlobFile);
             @unlink($pngBlobFile);
 
             // 2. Apply Anti-OCR and Watermarks using Intervention Image
-            $manager = new ImageManager(new Driver());
+            $manager = new ImageManager(new Driver);
             $image = $manager->decode($pngBlob);
 
             // Add diagonal semi-transparent watermark
@@ -90,7 +94,7 @@ class RenderSecureVisualPageJob implements ShouldQueue
 
             // Add random noise lines to confuse OCR
             for ($i = 0; $i < 15; $i++) {
-                $image->drawLine(function($line) use ($image) {
+                $image->drawLine(function ($line) use ($image) {
                     $line->from(rand(0, $image->width()), rand(0, $image->height()));
                     $line->to(rand(0, $image->width()), rand(0, $image->height()));
                     $line->color('rgba(150, 150, 150, 0.3)');
@@ -101,12 +105,12 @@ class RenderSecureVisualPageJob implements ShouldQueue
             // 3. Save the secured page
             // Zero-pad page index for correct alphabetical sorting by CompileSecurePdfJob
             $fileName = sprintf('page_%04d.png', $this->pageIndex);
-            $outputPath = $this->tempDir . '/' . $fileName;
+            $outputPath = $this->tempDir.'/'.$fileName;
 
             Storage::disk('local')->put($outputPath, (string) $image->encode());
 
         } catch (\Throwable $e) {
-            throw new RenderFailureException('Failed to render secure visual page: ' . $e->getMessage(), 0, $e);
+            throw new RenderFailureException('Failed to render secure visual page: '.$e->getMessage(), 0, $e);
         }
     }
 }

@@ -6,6 +6,4 @@ namespace App\Exceptions;
 
 use Exception;
 
-class PageCountMismatchException extends Exception
-{
-}
+class PageCountMismatchException extends Exception {}

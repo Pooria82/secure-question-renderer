@@ -7,7 +7,6 @@ namespace Tests\Feature;
 use App\Factories\ParserFactory;
 use App\Services\SecurePdfGenerationService;
 use Illuminate\Support\Facades\Bus;
-use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class PdfGenerationPipelineTest extends TestCase
@@ -18,14 +17,14 @@ class PdfGenerationPipelineTest extends TestCase
 
         $pdfService = app(SecurePdfGenerationService::class);
         $parserFactory = app(ParserFactory::class);
-        
+
         $jsonPath = base_path('tests/Fixtures/test.json');
         $parser = $parserFactory->make('json');
 
         $batchId = $pdfService->generate($parser, $jsonPath, 'test_output.pdf');
 
         $this->assertNotEmpty($batchId);
-        
+
         Bus::assertBatched(function ($batch) {
             return $batch->name === 'Secure Document Compilation' && $batch->jobs->count() === 2;
         });
@@ -37,9 +36,9 @@ class PdfGenerationPipelineTest extends TestCase
 
         $pdfService = app(SecurePdfGenerationService::class);
         $parserFactory = app(ParserFactory::class);
-        
+
         $wordPath = base_path('tests/Fixtures/valid.docx');
-        if (!file_exists($wordPath)) {
+        if (! file_exists($wordPath)) {
             $this->markTestSkipped('Fixture valid.docx not found.');
         }
 
@@ -48,7 +47,7 @@ class PdfGenerationPipelineTest extends TestCase
         $batchId = $pdfService->generate($parser, $wordPath, 'test_output.pdf');
 
         $this->assertNotEmpty($batchId);
-        
+
         Bus::assertBatched(function ($batch) {
             return $batch->name === 'Secure Document Compilation' && $batch->jobs->count() === 1;
         });

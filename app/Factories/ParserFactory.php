@@ -10,10 +10,6 @@ use App\Strategies\WordQuestionParser;
 
 class ParserFactory
 {
-    /**
-     * @param string $extension
-     * @return QuestionParserInterface|null
-     */
     public function make(string $extension): ?QuestionParserInterface
     {
         return match (strtolower($extension)) {

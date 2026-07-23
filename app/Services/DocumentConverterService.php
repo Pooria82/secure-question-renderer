@@ -12,8 +12,6 @@ class DocumentConverterService
     /**
      * Converts a DOCX file to an HTML file using Pandoc.
      *
-     * @param string $inputPath
-     * @param string $htmlPath
      * @throws RenderFailureException
      */
     public function convertDocxToHtml(string $inputPath, string $htmlPath): void
@@ -28,14 +26,14 @@ class DocumentConverterService
             '--mathml',
             '-V', 'dir=rtl',
             '-V', 'lang=fa',
-            '-o', $htmlPath
+            '-o', $htmlPath,
         ]);
-        
+
         $process->setTimeout(600);
         $process->run();
 
-        if (!$process->isSuccessful()) {
-            throw new RenderFailureException('Pandoc conversion failed: ' . $process->getErrorOutput());
+        if (! $process->isSuccessful()) {
+            throw new RenderFailureException('Pandoc conversion failed: '.$process->getErrorOutput());
         }
     }
 }

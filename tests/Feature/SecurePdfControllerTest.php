@@ -8,7 +8,6 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
-use App\Jobs\RenderSecureQuestionImageJob;
 
 class SecurePdfControllerTest extends TestCase
 {
@@ -40,7 +39,7 @@ class SecurePdfControllerTest extends TestCase
             'message',
             'batch_id',
             'status_url',
-            'output_filename'
+            'output_filename',
         ]);
 
         Bus::assertBatched(function ($batch) {
@@ -53,8 +52,8 @@ class SecurePdfControllerTest extends TestCase
         Bus::fake();
 
         $validDocxPath = base_path('tests/Fixtures/valid.docx');
-        
-        if (!file_exists($validDocxPath)) {
+
+        if (! file_exists($validDocxPath)) {
             $this->markTestSkipped('Fixture valid.docx not found.');
         }
 
@@ -71,7 +70,7 @@ class SecurePdfControllerTest extends TestCase
         ]);
 
         $response->assertStatus(202);
-        
+
         Bus::assertBatched(function ($batch) {
             return $batch->jobs->count() > 0;
         });

@@ -7,11 +7,10 @@ namespace Tests\Unit;
 use App\Exceptions\RenderFailureException;
 use App\Jobs\RenderSecureQuestionImageJob;
 use Illuminate\Support\Facades\Storage;
+use Mockery;
+use RuntimeException;
 use Spatie\Browsershot\Browsershot;
 use Tests\TestCase;
-use Mockery;
-use Mockery\MockInterface;
-use RuntimeException;
 
 class RenderSecureQuestionImageJobTest extends TestCase
 {
@@ -25,19 +24,20 @@ class RenderSecureQuestionImageJobTest extends TestCase
     {
         // Mock Browsershot by binding it or intercepting the call.
         // Wait, Browsershot is instantiated directly inside the Job via static Browsershot::html() which returns a new instance.
-        // Since we cannot easily mock static calls on a 3rd party class without an alias or dependency injection, 
+        // Since we cannot easily mock static calls on a 3rd party class without an alias or dependency injection,
         // we can use Mockery's "overload" feature or an alias mock to intercept the instantiation.
-        
+
         // Since alias/overload mocks can be tricky in PHPUnit, another way to force Browsershot to fail
         // is to give it an invalid node binary path, which will cause it to throw an exception when it tries to run.
-        
+
         $question = [
             'id' => 'q_error',
             'text' => 'Crash test',
-            'options' => ['A', 'B']
+            'options' => ['A', 'B'],
         ];
 
-        $job = new class($question, 'temp_dir') extends RenderSecureQuestionImageJob {
+        $job = new class($question, 'temp_dir') extends RenderSecureQuestionImageJob
+        {
             public function handle(): void
             {
                 // We override handle just to catch how we might inject failure if we used DI.
@@ -47,7 +47,7 @@ class RenderSecureQuestionImageJobTest extends TestCase
         };
 
         // We can use Mockery to alias the class
-        Mockery::mock('alias:' . Browsershot::class)
+        Mockery::mock('alias:'.Browsershot::class)
             ->shouldReceive('html')
             ->andThrow(new RuntimeException('Chrome crashed!'));
 

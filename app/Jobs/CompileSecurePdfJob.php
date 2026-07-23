@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
+use App\Exceptions\PageCountMismatchException;
+use App\Services\PdfPageCounterService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Storage;
-use App\Exceptions\PageCountMismatchException;
+use Mpdf\Mpdf;
+use Mpdf\Output\Destination;
 use Throwable;
 
 class CompileSecurePdfJob implements ShouldQueue
@@ -18,6 +21,7 @@ class CompileSecurePdfJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     private string $tempDir;
+
     private string $outputFilename;
 
     public function __construct(string $tempDir, string $outputFilename)
@@ -26,7 +30,7 @@ class CompileSecurePdfJob implements ShouldQueue
         $this->outputFilename = $outputFilename;
     }
 
-    public function handle(\App\Services\PdfPageCounterService $pageCounterService): void
+    public function handle(PdfPageCounterService $pageCounterService): void
     {
         $disk = Storage::disk('local');
         $directoryPath = $this->tempDir;
@@ -35,9 +39,9 @@ class CompileSecurePdfJob implements ShouldQueue
 
         try {
             $files = $disk->files($directoryPath);
-            
+
             // Read expected page count from metadata
-            $metadataPath = $directoryPath . '/metadata.json';
+            $metadataPath = $directoryPath.'/metadata.json';
             $expectedPages = null;
             if ($disk->exists($metadataPath)) {
                 $metadata = json_decode($disk->get($metadataPath), true);
@@ -45,21 +49,21 @@ class CompileSecurePdfJob implements ShouldQueue
             }
 
             // Filter only PNG images
-            $imageFiles = array_filter($files, fn($file) => str_ends_with($file, '.png'));
-            
+            $imageFiles = array_filter($files, fn ($file) => str_ends_with($file, '.png'));
+
             if (empty($imageFiles)) {
                 return;
             }
 
             sort($imageFiles);
 
-            $mpdf = new \Mpdf\Mpdf([
+            $mpdf = new Mpdf([
                 'format' => 'A4',
                 'margin_left' => 10,
                 'margin_right' => 10,
                 'margin_top' => 10,
                 'margin_bottom' => 10,
-                'tempDir' => storage_path('app/private/mpdf_temp')
+                'tempDir' => storage_path('app/private/mpdf_temp'),
             ]);
 
             $mpdf->SetProtection(['print', 'print-highres']);
@@ -78,9 +82,9 @@ class CompileSecurePdfJob implements ShouldQueue
                 $index++;
             }
 
-            $pdfOutputPath = storage_path('app/private/secure_pdfs/' . $this->outputFilename);
+            $pdfOutputPath = storage_path('app/private/secure_pdfs/'.$this->outputFilename);
             $disk->makeDirectory('secure_pdfs');
-            $mpdf->Output($pdfOutputPath, \Mpdf\Output\Destination::FILE);
+            $mpdf->Output($pdfOutputPath, Destination::FILE);
 
             // QA Assertion
             if ($expectedPages !== null) {
