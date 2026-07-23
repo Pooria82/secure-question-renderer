@@ -34,6 +34,7 @@ Thumbs.db
 /storage/app/private/secure_pdfs/
 /storage/app/private/uploads/
 /storage/app/private/temp/
+/storage/app/private/temp_renders_*/
 /storage/app/testing/
 # Puppeteer cache
 .puppeteer-cache/
