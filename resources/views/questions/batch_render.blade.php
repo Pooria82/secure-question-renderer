@@ -49,6 +49,10 @@
             $clean = strip_tags($clean);
             // Remove all numbers, whitespace, punctuation, and symbols from the beginning
             $clean = preg_replace('/^[\d\s\p{P}\p{S}\p{Z}\p{C}]+/u', '', $clean);
+            // If string is empty after stripping, default to rtl (most safe for mixed exams where numbers are often Persian options)
+            if (empty(trim($clean))) {
+                return 'rtl'; // Fallback
+            }
             return preg_match('/^[\p{Arabic}]/u', $clean) ? 'rtl' : 'ltr';
         }
         
@@ -72,16 +76,15 @@
     @endphp
     <div class="question-container" dir="{{ $qDir }}">
         <div class="question-text">
-            <bdi dir="{{ $qDir }}">{!! $qText !!}</bdi>
+            <bdi>{!! $qText !!}</bdi>
         </div>
         <ul class="options-list">
             @foreach($question['options'] ?? [] as $option)
                 @php
                     $optText = sanitizeWysiwyg($option);
-                    $optDir = getDirection($optText);
                 @endphp
-                <li class="option-item" dir="{{ $optDir }}">
-                    <bdi dir="{{ $optDir }}">{!! $optText !!}</bdi>
+                <li class="option-item">
+                    <bdi>{!! $optText !!}</bdi>
                 </li>
             @endforeach
         </ul>

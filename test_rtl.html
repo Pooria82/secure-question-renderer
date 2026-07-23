@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+.force-rtl * {
+    direction: rtl !important;
+    text-align: right !important;
+}
+</style>
+</head>
+<body>
+    <div class="force-rtl">
+        <bdi>(English) What is your name?</bdi>
+        <br>
+        <span>(A) John</span>
+        <br>
+        <bdi>(A) John</bdi>
+        <br>
+        <p style="text-align: right; direction: rtl;">(A) John</p>
+    </div>
+</body>
+</html>
