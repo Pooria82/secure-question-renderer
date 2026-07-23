@@ -26,7 +26,7 @@ class PdfGenerationPipelineTest extends TestCase
         $this->assertNotEmpty($batchId);
 
         Bus::assertBatched(function ($batch) {
-            return $batch->name === 'Secure Document Compilation' && $batch->jobs->count() === 2;
+            return $batch->name === 'Secure Document Compilation' && $batch->jobs->count() === 1;
         });
     }
 

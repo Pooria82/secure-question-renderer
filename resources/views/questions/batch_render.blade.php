@@ -2,35 +2,39 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Question Render</title>
+    <title>Secure Exam Render</title>
     <style>
         body {
             font-family: 'Amiri', 'Noto Sans Arabic', Tahoma, Arial, sans-serif;
             background-color: white;
             color: black;
             padding: 40px;
-            font-size: 28px; /* Adjusted for 144 DPI A4 rendering */
+            font-size: 16px;
             line-height: 1.6;
             margin: 0;
         }
         .question-container {
             border: 1px solid #ddd;
-            padding: 30px;
+            padding: 20px;
             border-radius: 8px;
             background: #fff;
+            margin-bottom: 30px;
+            page-break-inside: avoid;
         }
         .question-text {
             font-weight: bold;
-            margin-bottom: 25px;
-            font-size: 34px;
+            margin-bottom: 15px;
+            font-size: 18px;
         }
         .options-list {
-            list-style-type: none;
+            list-style-type: circle;
+            list-style-position: outside;
             padding: 0;
+            padding-inline-start: 30px;
             margin: 0;
         }
         .option-item {
-            margin-bottom: 15px;
+            margin-bottom: 10px;
         }
         /* Isolate MathML formulas for LTR rendering */
         math {
@@ -41,18 +45,19 @@
     </style>
 </head>
 <body>
-    <div class="question-container">
-        <!-- dir="auto" will automatically align right for Persian and left for English -->
-        <div class="question-text" dir="auto">
+    @foreach($questions as $question)
+    <div class="question-container" dir="auto">
+        <div class="question-text">
             {!! $question['text'] ?? 'Missing Question Text' !!}
         </div>
         <ul class="options-list">
             @foreach($question['options'] ?? [] as $option)
-                <li class="option-item" dir="auto">
-                    &#x25CB; {!! $option !!}
+                <li class="option-item">
+                    {!! $option !!}
                 </li>
             @endforeach
         </ul>
     </div>
+    @endforeach
 </body>
 </html>

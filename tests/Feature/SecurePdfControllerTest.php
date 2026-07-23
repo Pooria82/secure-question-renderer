@@ -43,7 +43,7 @@ class SecurePdfControllerTest extends TestCase
         ]);
 
         Bus::assertBatched(function ($batch) {
-            return $batch->jobs->count() === 2; // test.json has 2 questions
+            return $batch->jobs->count() === 1; // Now it creates 1 PrepareJsonDocumentJob instead of N RenderSecureQuestionImageJobs
         });
     }
 

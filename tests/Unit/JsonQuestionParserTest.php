@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit;
 
 use App\Exceptions\InputValidationException;
-use App\Jobs\RenderSecureQuestionImageJob;
+use App\Jobs\PrepareJsonDocumentJob;
 use App\Strategies\JsonQuestionParser;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -31,7 +31,7 @@ class JsonQuestionParserTest extends TestCase
             $jobs = $this->parser->generateJobs($tempFile, 'test_temp_dir');
             $this->assertIsArray($jobs);
             $this->assertCount(1, $jobs);
-            $this->assertInstanceOf(RenderSecureQuestionImageJob::class, $jobs[0]);
+            $this->assertInstanceOf(PrepareJsonDocumentJob::class, $jobs[0]);
         } finally {
             if (file_exists($tempFile)) {
                 unlink($tempFile);

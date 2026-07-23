@@ -63,6 +63,7 @@ class SecurePdfController extends Controller
             return response()->json(['error' => $e->getMessage()], 422);
         } catch (\Throwable $e) {
             report($e);
+
             return response()->json(['error' => 'An unexpected error occurred processing your request.'], 500);
         }
     }

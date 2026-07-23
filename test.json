@@ -1,0 +1,14 @@
+{
+  "questions": [
+    {
+      "id": "q1",
+      "text": "What is the capital of France?",
+      "options": ["Paris", "Berlin", "London"]
+    },
+    {
+      "id": "q2",
+      "text": "پایتخت ایران کجاست؟",
+      "options": ["تهران", "شیراز", "اصفهان"]
+    }
+  ]
+}

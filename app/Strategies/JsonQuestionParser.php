@@ -7,8 +7,7 @@ namespace App\Strategies;
 use App\Contracts\QuestionParserInterface;
 use App\DTOs\QuestionData;
 use App\Exceptions\InputValidationException;
-use App\Jobs\RenderSecureQuestionImageJob;
-use Illuminate\Support\Facades\Storage;
+use App\Jobs\PrepareJsonDocumentJob;
 use JsonException;
 
 class JsonQuestionParser implements QuestionParserInterface
@@ -43,15 +42,16 @@ class JsonQuestionParser implements QuestionParserInterface
         }
 
         $questions = $data['questions'];
-        $pages = count($questions);
-
-        // Write metadata for CompileSecurePdfJob
-        Storage::disk('local')->put($tempDir.'/metadata.json', json_encode(['expected_pages' => $pages]));
 
         $jobs = [];
+        $validQuestions = [];
         foreach ($questions as $questionArray) {
             $questionDto = QuestionData::fromArray($questionArray);
-            $jobs[] = new RenderSecureQuestionImageJob($questionDto->toArray(), $tempDir);
+            $validQuestions[] = $questionDto->toArray();
+        }
+
+        if (! empty($validQuestions)) {
+            $jobs[] = new PrepareJsonDocumentJob($validQuestions, $tempDir);
         }
 
         return $jobs;
