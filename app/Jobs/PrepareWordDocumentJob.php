@@ -119,6 +119,28 @@ class PrepareWordDocumentJob implements ShouldQueue
             $htmlContent .= $part;
         }
 
+        // Convert WMF/EMF images to PNG using ImageMagick because Chromium does not support WMF/EMF rendering
+        $htmlContent = preg_replace_callback('/data:image\/(x-wmf|wmf|x-emf|emf);base64,([a-zA-Z0-9+\/=\s]+)/i', function($matches) {
+            $base64 = preg_replace('/\s+/', '', $matches[2]);
+            $data = base64_decode($base64);
+            $tmpName = uniqid("img_");
+            $ext = str_replace('x-', '', strtolower($matches[1]));
+            $wmfFile = "/tmp/" . $tmpName . "." . $ext;
+            $pngFile = "/tmp/" . $tmpName . ".png";
+            file_put_contents($wmfFile, $data);
+            exec("convert {$wmfFile} {$pngFile} 2>&1", $out, $ret);
+            if (file_exists($pngFile) && filesize($pngFile) > 0) {
+                $pngData = file_get_contents($pngFile);
+                $newBase64 = base64_encode($pngData);
+                @unlink($wmfFile);
+                @unlink($pngFile);
+                return "data:image/png;base64," . $newBase64;
+            }
+            @unlink($wmfFile);
+            @unlink($pngFile);
+            return $matches[0];
+        }, $htmlContent);
+
         // Inject custom CSS to enforce RTL alignment, isolate MathML, format tables, and preserve code blocks
         $customCss = <<<CSS
 <style>
@@ -137,6 +159,12 @@ class PrepareWordDocumentJob implements ShouldQueue
         direction: rtl !important;
         text-align: right !important; 
         overflow: visible !important;
+    }
+    /* Constrain images */
+    img {
+        max-width: 100% !important;
+        height: auto !important;
+        display: inline-block !important;
     }
     /* Right-align tables */
     table { 
