@@ -35,10 +35,19 @@
             margin-bottom: 10px;
         }
         /* Isolate MathML formulas for LTR rendering */
-        math {
+        /* Isolate MathML formulas for LTR rendering */
+        math, [dir="ltr"] math, [dir="rtl"] math, math * {
             direction: ltr !important;
             unicode-bidi: embed !important;
             text-align: initial !important;
+        }
+        
+        /* Enforce alignment overriding WYSIWYG inline styles */
+        [dir="ltr"], [dir="ltr"] * {
+            text-align: left !important;
+        }
+        [dir="rtl"], [dir="rtl"] * {
+            text-align: right !important;
         }
     </style>
 </head>
