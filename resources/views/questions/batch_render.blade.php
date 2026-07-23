@@ -45,7 +45,10 @@
 <body>
     @php
         function getDirection($text) {
-            return preg_match('/[\p{Arabic}]/u', strip_tags($text)) ? 'rtl' : 'ltr';
+            $clean = strip_tags($text);
+            // Remove all numbers, whitespace, punctuation, and symbols from the beginning
+            $clean = preg_replace('/^[\d\s\p{P}\p{S}]+/u', '', $clean);
+            return preg_match('/^[\p{Arabic}]/u', $clean) ? 'rtl' : 'ltr';
         }
     @endphp
     @foreach($questions as $question)
@@ -54,7 +57,7 @@
     @endphp
     <div class="question-container" dir="{{ $qDir }}">
         <div class="question-text">
-            {!! $question['text'] ?? 'Missing Question Text' !!}
+            <bdi dir="{{ $qDir }}">{!! $question['text'] ?? 'Missing Question Text' !!}</bdi>
         </div>
         <ul class="options-list">
             @foreach($question['options'] ?? [] as $option)
@@ -62,7 +65,7 @@
                     $optDir = getDirection($option);
                 @endphp
                 <li class="option-item" dir="{{ $optDir }}">
-                    {!! $option !!}
+                    <bdi dir="{{ $optDir }}">{!! $option !!}</bdi>
                 </li>
             @endforeach
         </ul>

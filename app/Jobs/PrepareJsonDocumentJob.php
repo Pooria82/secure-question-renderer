@@ -51,8 +51,10 @@ class PrepareJsonDocumentJob implements ShouldQueue
         // 1. Render all JSON questions to a single HTML document
         $htmlContent = View::make('questions.batch_render', ['questions' => $this->questions])->render();
 
-        // 2. Convert HTML to PDF via Gotenberg
-        // We DO NOT use HtmlSanitizerService here because JSON provides clean data and we want native dir="auto"
+        // 2. Sanitize HTML using the same service Word relies on
+        $htmlContent = $sanitizerService->sanitize($htmlContent);
+
+        // 3. Convert HTML to PDF via Gotenberg
         $gotenbergService->convertHtmlToPdf($htmlContent, $pdfPath);
 
         // 4. Count PDF pages
