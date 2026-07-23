@@ -9,7 +9,7 @@
             background-color: white;
             color: black;
             padding: 40px;
-            font-size: 24px; /* Slightly larger for clearer rendering */
+            font-size: 28px; /* Adjusted for 144 DPI A4 rendering */
             line-height: 1.6;
             margin: 0;
         }
@@ -22,7 +22,7 @@
         .question-text {
             font-weight: bold;
             margin-bottom: 25px;
-            font-size: 28px;
+            font-size: 34px;
         }
         .options-list {
             list-style-type: none;

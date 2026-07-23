@@ -59,7 +59,7 @@ class RenderSecureQuestionImageJob implements ShouldQueue
             Browsershot::html($html)
                 ->noSandbox()
                 ->setChromePath('/usr/bin/chromium')
-                ->windowSize(1024, 768)
+                ->windowSize(1190, 1684)
                 ->waitUntilNetworkIdle()
                 ->save($imagePath);
 
@@ -70,7 +70,7 @@ class RenderSecureQuestionImageJob implements ShouldQueue
             // Add aggressive noise (pixelation/blur equivalent or manual noise)
             // Intervention v3 allows pixelate, blur, or writing text.
             // Add diagonal semi-transparent watermark
-            $image->text('CONFIDENTIAL - SECURE EXAM', 512, 384, function ($font) {
+            $image->text('CONFIDENTIAL - SECURE EXAM', 595, 842, function ($font) {
                 // We use default font since TTF path might vary
                 $font->color('rgba(255, 0, 0, 0.15)'); // Semi-transparent red
                 $font->size(60);
@@ -80,8 +80,8 @@ class RenderSecureQuestionImageJob implements ShouldQueue
             // Add random noise lines to confuse OCR
             for ($i = 0; $i < 10; $i++) {
                 $image->drawLine(function($line) {
-                    $line->from(rand(0, 1024), rand(0, 768));
-                    $line->to(rand(0, 1024), rand(0, 768));
+                    $line->from(rand(0, 1190), rand(0, 1684));
+                    $line->to(rand(0, 1190), rand(0, 1684));
                     $line->color('rgba(150, 150, 150, 0.2)'); // faint gray lines
                     $line->width(rand(1, 3));
                 });
