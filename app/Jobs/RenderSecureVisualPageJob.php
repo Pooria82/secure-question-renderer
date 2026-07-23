@@ -20,21 +20,15 @@ class RenderSecureVisualPageJob implements ShouldQueue
 {
     use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    private string $pdfPath;
+    private string $pngPath;
 
-    private int $pageIndex;
-
-    private string $tempDir;
-
-    public $timeout = 300; // Increased timeout for Imagick and Intervention
+    public $timeout = 120; // Fast because GS is extracted out
 
     public $failOnTimeout = true;
 
-    public function __construct(string $pdfPath, int $pageIndex, string $tempDir)
+    public function __construct(string $pngPath)
     {
-        $this->pdfPath = $pdfPath;
-        $this->pageIndex = $pageIndex;
-        $this->tempDir = $tempDir;
+        $this->pngPath = $pngPath;
     }
 
     public function handle(): void
@@ -47,43 +41,13 @@ class RenderSecureVisualPageJob implements ShouldQueue
         ini_set('memory_limit', '1024M');
 
         try {
-            // 1. Convert specific PDF page to high-res PNG using Ghostscript directly
-            // Imagick sometimes fails to render fonts or flatten complex PDFs properly
-            $gsPage = $this->pageIndex + 1;
-            $pngBlobFile = tempnam(sys_get_temp_dir(), 'gs_').'.png';
-
-            $resolution = config('secure-pdf.processing.ghostscript_resolution', 300);
-
-            $process = new Process([
-                'gs',
-                '-q',
-                '-dQUIET',
-                '-dSAFER',
-                '-dBATCH',
-                '-dNOPAUSE',
-                '-dNOPROMPT',
-                '-dMaxBitmap=500000000',
-                '-sDEVICE=png16m',
-                '-dTextAlphaBits=4',
-                '-dGraphicsAlphaBits=4',
-                '-r'.$resolution,
-                '-dFirstPage='.$gsPage,
-                '-dLastPage='.$gsPage,
-                '-sOutputFile='.$pngBlobFile,
-                $this->pdfPath,
-            ]);
-
-            $process->setTimeout(300);
-            $process->run();
-
-            if (! $process->isSuccessful()) {
-                throw new \Exception('Ghostscript failed: '.$process->getErrorOutput());
+            if (! file_exists($this->pngPath)) {
+                throw new RenderFailureException('Extracted PNG file not found: '.$this->pngPath);
             }
 
-            $pngBlob = file_get_contents($pngBlobFile);
-            @unlink($pngBlobFile);
+            $pngBlob = file_get_contents($this->pngPath);
 
-            // 2. Apply Anti-OCR and Watermarks using Intervention Image
+            // 1. Apply Anti-OCR and Watermarks using Intervention Image
             $manager = new ImageManager(new Driver);
             $image = $manager->decode($pngBlob);
 
@@ -108,12 +72,8 @@ class RenderSecureVisualPageJob implements ShouldQueue
                 });
             }
 
-            // 3. Save the secured page
-            // Zero-pad page index for correct alphabetical sorting by CompileSecurePdfJob
-            $fileName = sprintf('page_%04d.png', $this->pageIndex);
-            $outputPath = $this->tempDir.'/'.$fileName;
-
-            Storage::disk('local')->put($outputPath, (string) $image->encode());
+            // 2. Overwrite the original PNG securely
+            file_put_contents($this->pngPath, (string) $image->encode());
 
         } catch (\Throwable $e) {
             throw new RenderFailureException('Failed to render secure visual page: '.$e->getMessage(), 0, $e);

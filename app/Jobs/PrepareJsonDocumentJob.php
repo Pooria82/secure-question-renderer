@@ -37,7 +37,7 @@ class PrepareJsonDocumentJob implements ShouldQueue
     public function handle(
         HtmlSanitizerService $sanitizerService,
         \App\Contracts\HtmlToPdfConverterInterface $gotenbergService,
-        \App\Contracts\PdfPageCounterInterface $pageCounterService
+        \App\Contracts\PdfRasterizerInterface $rasterizerService
     ): void {
         if ($this->batch()?->cancelled()) {
             return;
@@ -55,16 +55,20 @@ class PrepareJsonDocumentJob implements ShouldQueue
         // We DO NOT use HtmlSanitizerService here because JSON provides clean data and we want native HTML5 dir handling
         $gotenbergService->convertHtmlToPdf($htmlContent, $pdfPath);
 
-        // 4. Count PDF pages
-        $pages = $pageCounterService->countPages($pdfPath);
+        // 3. Bulk rasterize the entire PDF to PNGs in O(1) Ghostscript operations
+        $pngFiles = $rasterizerService->rasterize($pdfPath, $tempDirPath);
+        $pages = count($pngFiles);
 
         // Write metadata for CompileSecurePdfJob
         file_put_contents($tempDirPath.'/metadata.json', json_encode(['expected_pages' => $pages]));
 
-        // Dispatch a job for each paginated page
+        // Optionally delete the source PDF immediately to save space and security
+        @unlink($pdfPath);
+
+        // 4. Dispatch a job for each extracted PNG page to add anti-OCR and watermarking in parallel
         $jobs = [];
-        for ($i = 0; $i < $pages; $i++) {
-            $jobs[] = new RenderSecureVisualPageJob($pdfPath, $i, $this->tempDir);
+        foreach ($pngFiles as $index => $pngFile) {
+            $jobs[] = new RenderSecureVisualPageJob($pngFile);
         }
 
         if (! empty($jobs)) {

@@ -60,34 +60,46 @@ class CompileSecurePdfJob implements ShouldQueue
 
             sort($imageFiles);
 
-            $mpdf = new Mpdf([
-                'format' => 'A4',
-                'margin_left' => 10,
-                'margin_right' => 10,
-                'margin_top' => 10,
-                'margin_bottom' => 10,
-                'tempDir' => storage_path('app/private/mpdf_temp'),
-            ]);
-
-            $mpdf->SetProtection(['print', 'print-highres']);
-
-            $index = 0;
-            foreach ($imageFiles as $file) {
-                if ($index > 0) {
-                    $mpdf->AddPage();
-                }
-
-                // Force mPDF to mark page as dirty so it doesn't drop the last page when using absolute image positioning
-                $mpdf->WriteHTML('<div style="position: absolute; width: 1px; height: 1px; visibility: hidden;">&nbsp;</div>');
-
-                $imagePath = $disk->path($file);
-                $mpdf->Image($imagePath, 0, 0, 210, 297, 'png', '', true, false);
-                $index++;
-            }
-
             $pdfOutputPath = storage_path('app/private/secure_pdfs/'.$this->outputFilename);
             $disk->makeDirectory('secure_pdfs');
-            $mpdf->Output($pdfOutputPath, Destination::FILE);
+
+            if (class_exists('\Imagick')) {
+                $imagick = new \Imagick();
+                foreach ($imageFiles as $file) {
+                    $imagePath = $disk->path($file);
+                    $page = new \Imagick();
+                    $page->readImage($imagePath);
+                    $page->setImageFormat('pdf');
+                    $imagick->addImage($page);
+                }
+                $imagick->writeImages($pdfOutputPath, true);
+                $imagick->clear();
+            } else {
+                // Fallback to mPDF if Imagick extension is missing
+                $mpdf = new Mpdf([
+                    'format' => 'A4',
+                    'margin_left' => 0,
+                    'margin_right' => 0,
+                    'margin_top' => 0,
+                    'margin_bottom' => 0,
+                    'tempDir' => storage_path('app/private/mpdf_temp'),
+                ]);
+
+                $mpdf->SetProtection(['print', 'print-highres']);
+
+                $index = 0;
+                foreach ($imageFiles as $file) {
+                    if ($index > 0) {
+                        $mpdf->AddPage();
+                    }
+                    $imagePath = $disk->path($file);
+                    // Use Image directly
+                    $mpdf->Image($imagePath, 0, 0, 210, 297, 'png', '', true, false);
+                    $index++;
+                }
+
+                $mpdf->Output($pdfOutputPath, Destination::FILE);
+            }
 
             // QA Assertion
             if ($expectedPages !== null) {

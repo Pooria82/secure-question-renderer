@@ -25,6 +25,11 @@ class AppServiceProvider extends ServiceProvider
             \App\Contracts\PdfPageCounterInterface::class,
             \App\Services\PdfPageCounterService::class
         );
+
+        $this->app->bind(
+            \App\Contracts\PdfRasterizerInterface::class,
+            \App\Services\GhostscriptRasterizerService::class
+        );
     }
 
     /**

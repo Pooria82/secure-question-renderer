@@ -38,7 +38,7 @@ class PrepareWordDocumentJob implements ShouldQueue
         \App\Contracts\DocumentToHtmlConverterInterface $converterService,
         HtmlSanitizerService $sanitizerService,
         \App\Contracts\HtmlToPdfConverterInterface $gotenbergService,
-        \App\Contracts\PdfPageCounterInterface $pageCounterService
+        \App\Contracts\PdfRasterizerInterface $rasterizerService
     ): void {
         if ($this->batch()?->cancelled()) {
             return;
@@ -63,16 +63,20 @@ class PrepareWordDocumentJob implements ShouldQueue
             // 3. Convert HTML to PDF via Gotenberg
             $gotenbergService->convertHtmlToPdf($htmlContent, $pdfPath);
 
-            // 4. Count PDF pages
-            $pages = $pageCounterService->countPages($pdfPath);
+            // 4. Bulk rasterize the entire PDF to PNGs in O(1) Ghostscript operations
+            $pngFiles = $rasterizerService->rasterize($pdfPath, $tempDirPath);
+            $pages = count($pngFiles);
 
             // Write metadata for CompileSecurePdfJob
             file_put_contents($tempDirPath.'/metadata.json', json_encode(['expected_pages' => $pages]));
 
-            // Dispatch a job for each page
+            // Optionally delete the source PDF to save space and increase security
+            @unlink($pdfPath);
+
+            // 5. Dispatch a job for each extracted PNG page
             $jobs = [];
-            for ($i = 0; $i < $pages; $i++) {
-                $jobs[] = new RenderSecureVisualPageJob($pdfPath, $i, $this->tempDir);
+            foreach ($pngFiles as $index => $pngFile) {
+                $jobs[] = new RenderSecureVisualPageJob($pngFile);
             }
 
             if (! empty($jobs)) {
