@@ -69,8 +69,6 @@ class RenderSecureQuestionImageJob implements ShouldQueue
 
             // Add aggressive noise (pixelation/blur equivalent or manual noise)
             // Intervention v3 allows pixelate, blur, or writing text.
-            $image->pixelate(2); // Light pixelation that preserves human readability but degrades OCR
-
             // Add diagonal semi-transparent watermark
             $image->text('CONFIDENTIAL - SECURE EXAM', 512, 384, function ($font) {
                 // We use default font since TTF path might vary
