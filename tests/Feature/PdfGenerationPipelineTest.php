@@ -37,9 +37,12 @@ class PdfGenerationPipelineTest extends TestCase
         $pdfService = app(SecurePdfGenerationService::class);
         $parserFactory = app(ParserFactory::class);
 
-        $wordPath = base_path('tests/Fixtures/valid.docx');
+        $wordPath = file_exists(base_path('tests/Fixtures/98.docx'))
+            ? base_path('tests/Fixtures/98.docx')
+            : base_path('tests/Fixtures/valid.docx');
+
         if (! file_exists($wordPath)) {
-            $this->markTestSkipped('Fixture valid.docx not found.');
+            $this->markTestSkipped('Fixture docx file not found.');
         }
 
         $parser = $parserFactory->make('docx');

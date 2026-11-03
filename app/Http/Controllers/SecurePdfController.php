@@ -34,6 +34,7 @@ class SecurePdfController extends Controller
     {
         $file = $request->file('file');
         $extension = strtolower($file->getClientOriginalExtension());
+        $absolutePath = null;
 
         try {
             $outputFilename = 'secure_exam_'.time().'.pdf';
@@ -61,13 +62,13 @@ class SecurePdfController extends Controller
             ], 202);
 
         } catch (InputValidationException $e) {
-            if (isset($absolutePath) && file_exists($absolutePath)) {
+            if (file_exists($absolutePath)) {
                 @unlink($absolutePath);
             }
 
             return response()->json(['error' => $e->getMessage()], 422);
         } catch (\Throwable $e) {
-            if (isset($absolutePath) && file_exists($absolutePath)) {
+            if ($absolutePath !== null && file_exists($absolutePath)) {
                 @unlink($absolutePath);
             }
             report($e);
@@ -111,13 +112,10 @@ class SecurePdfController extends Controller
 
         // If batch is finished but file doesn't exist yet, it's in the compile queue!
         if (! file_exists($path)) {
-            if (! Cache::get('compile_failed_'.$batchId)) {
-                return response()->json([
-                    'status' => 'compiling',
-                    'progress' => 100,
-                ]);
-            }
-            return response()->json(['error' => 'PDF file not found or compilation failed.'], 404);
+            return response()->json([
+                'status' => 'compiling',
+                'progress' => 100,
+            ]);
         }
 
         return response()->download($path, $filename, [

@@ -51,15 +51,17 @@ class SecurePdfControllerTest extends TestCase
     {
         Bus::fake();
 
-        $validDocxPath = base_path('tests/Fixtures/valid.docx');
+        $validDocxPath = file_exists(base_path('tests/Fixtures/98.docx'))
+            ? base_path('tests/Fixtures/98.docx')
+            : base_path('tests/Fixtures/valid.docx');
 
         if (! file_exists($validDocxPath)) {
-            $this->markTestSkipped('Fixture valid.docx not found.');
+            $this->markTestSkipped('Fixture docx file not found.');
         }
 
         $file = new UploadedFile(
             $validDocxPath,
-            'valid.docx',
+            basename($validDocxPath),
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             null,
             true

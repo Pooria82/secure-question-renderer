@@ -7,7 +7,7 @@ namespace Tests\Unit;
 use App\Exceptions\InputValidationException;
 use App\Jobs\PrepareWordDocumentJob;
 use App\Strategies\WordQuestionParser;
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 
 class WordQuestionParserTest extends TestCase
 {

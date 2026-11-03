@@ -36,8 +36,8 @@ class JsonQuestionParser implements QuestionParserInterface
         } catch (JsonException $e) {
             throw new InputValidationException('Invalid JSON provided: '.$e->getMessage(), 0, $e);
         } finally {
-            if (str_starts_with($inputPath, storage_path('app/private/uploads')) && file_exists($inputPath)) {
-                unlink($inputPath);
+            if (str_starts_with($inputPath, storage_path('app/private/uploads'))) {
+                @unlink($inputPath);
             }
         }
 

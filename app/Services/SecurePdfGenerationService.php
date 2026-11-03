@@ -8,7 +8,6 @@ use App\Contracts\QuestionParserInterface;
 use App\Jobs\CompileSecurePdfJob;
 use Illuminate\Bus\Batch;
 use Illuminate\Support\Facades\Bus;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Throwable;
