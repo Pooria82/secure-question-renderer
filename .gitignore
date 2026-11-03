@@ -25,3 +25,18 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# App specific ignores
+/storage/app/public/uploads/
+/storage/app/temp/
+/storage/app/generated/
+/storage/app/private/mpdf_temp/
+/storage/app/private/secure_pdfs/
+/storage/app/private/uploads/
+/storage/app/private/temp/
+/storage/app/private/temp_renders_*/
+/storage/app/testing/
+# Puppeteer cache
+.puppeteer-cache/
+
+/storage/app/public/e2e-results/

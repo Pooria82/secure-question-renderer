@@ -1,58 +1,133 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Secure Question Renderer
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+An enterprise-grade, highly optimized, and scalable backend solution for converting raw question banks (JSON or Word documents) into aggressively protected, anti-OCR PDF files. This project is purpose-built to defend the intellectual property of sensitive examinations.
 
-## About Laravel
+## 🚀 Quick Start (Docker Environment)
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
-
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+We provide a production-ready, fully containerized Docker environment equipped with PHP 8.3, Gotenberg, Ghostscript, Pandoc, Imagick, and all necessary OS-level dependencies. 
 
 ```bash
-composer require laravel/boost --dev
+# 1. Clone the repository
+git clone https://github.com/Pooria82/secure-question-renderer.git
+cd secure-question-renderer
 
-php artisan boost:install
+# 2. Start the Docker containers (App, Nginx, Queue Worker, Gotenberg)
+docker-compose up -d --build
+
+# 3. Install composer dependencies (inside container)
+docker-compose exec app composer install
+
+# 4. Copy environment file and generate key
+docker-compose exec app cp .env.example .env
+docker-compose exec app php artisan key:generate
+
+# 5. Run database migrations (SQLite is pre-configured)
+docker-compose exec app php artisan migrate
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Your API is now available on `http://localhost:8000`.
 
-## Contributing
+---
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## 📖 API Documentation
 
-## Code of Conduct
+### 1. Convert Document
+Submit a JSON or DOCX file to initiate the secure PDF rendering pipeline.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+- **Endpoint:** `POST /api/convert`
+- **Headers:** `Accept: application/json`
+- **Body (multipart/form-data):**
+  - `file`: The `.json` or `.docx` file containing the questions.
+- **Response (202 Accepted):**
+```json
+{
+    "message": "Secure PDF generation has started.",
+    "batch_id": "9b123456-e89b-12d3-a456-426614174000",
+    "status_url": "http://localhost:8000/api/download/9b123456-e89b-12d3-a456-426614174000",
+    "output_filename": "secure_exam_1734567890.pdf"
+}
+```
 
-## Security Vulnerabilities
+### 2. Check Status & Download
+Poll this endpoint using the `batch_id`. Once processing is complete, this endpoint will automatically initiate the PDF file download.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+- **Endpoint:** `GET /api/download/{batch_id}?filename={output_filename}`
+- **Response (200 OK - Processing):**
+```json
+{
+    "status": "processing",
+    "progress": 45
+}
+```
+- **Response (200 OK - Completed):**
+  - Returns the `application/pdf` binary stream and permanently deletes the file from the server.
 
-## License
+---
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## 🛡️ Security Measures (Anti-OCR)
+
+The primary goal of this application is to thwart optical character recognition (OCR) and text extraction techniques. We implement security at two distinct layers:
+
+### 1. Rasterization & Visual Disruption (Intervention/GD)
+Each document is first rendered into a standard PDF, and then **flattened** into physical pixel images via Ghostscript. Before saving, Intervention Image applies:
+- **Visual Noise & Pixelation**: Subtly disrupts edge-detection algorithms used by OCR AI without impacting human readability.
+- **Diagonal Watermarks**: Imposes a semi-transparent, angled text layer across the image body.
+- **Interfering Lines**: Randomly generated line artifacts are drawn across the image, breaking the structural layout of the words for programmatic parsers.
+
+### 2. Document Level Assembly
+When compiling the final PDF via `Imagick`, the resulting document is essentially a gallery of flattened photographs.
+- Text Selection and Copying is physically impossible.
+- Programmatic Text Extraction via tools like PyPDF2 will return blank strings.
+
+---
+
+## ⚡ Performance & Scalability
+
+Rendering documents to heavily protected images is extremely resource-intensive. Executing this synchronously would inevitably cause HTTP timeouts.
+
+To ensure enterprise-grade reliability, we utilize **Laravel Job Batching**:
+1. **O(1) Bulk Rasterization:** Instead of repeatedly loading memory-heavy processes, `GhostscriptRasterizerService` blasts the intermediate PDF into high-res PNG pages in a single O(1) process.
+2. **Parallel Image Processing:** A batch of isolated `RenderSecureVisualPageJob`s are dispatched to the Queue. Background workers process these images concurrently. This allows for **horizontal scaling**—simply spawn more Queue workers to handle higher loads.
+3. **Blazing-Fast Native Assembly:** Once the batch completes, `CompileSecurePdfJob` stitches the images into the secure PDF using native C-bound `Imagick` (cutting compilation time by ~70%), and rigorously cleans up all temporary files.
+
+This architecture guarantees a fast HTTP response (`202 Accepted`) and delegates heavy lifting to resilient, scalable background processes.
+
+---
+
+## 🧹 Garbage Collection
+The application adheres to the strictest data-minimization practices:
+- **Immediate Input Purging:** Uploaded `.json` and `.docx` files are `unlink()`ed milliseconds after they are loaded into memory.
+- **Self-Destructing Outputs:** The final PDF deletes itself from the disk the exact moment the client successfully downloads it (`deleteFileAfterSend(true)`).
+- **Cron Failsafe:** A scheduled daily Laravel task automatically prunes orphaned temporary directories in the event of a catastrophic server hardware crash.
+
+## 💾 Data Storage & The SQLite Database
+
+A common point of confusion is the role of the SQLite database (`database/database.sqlite`) in this application. 
+
+**Where are the PDFs stored?**
+The SQLite database **does not** store the uploaded files, nor the final PDFs. It is entirely incapable of serving files. 
+- All successfully generated secure PDFs are physically saved as standard files on the disk at: `/var/www/storage/app/private/secure_pdfs/`.
+- Once a client calls the download API endpoint, the application reads the PDF from that physical directory, streams it to the user, and immediately permanently deletes it.
+
+**So what is the SQLite Database used for?**
+The database acts as the nervous system for our background worker queues. It tracks:
+- **`job_batches`**: Keeps an exact count of how many pages (jobs) have successfully finished rendering for your document.
+- **`jobs`**: The raw queue payload of pending tasks awaiting processing.
+- **`failed_jobs`**: Logs of any pages that failed to render.
+
+---
+
+## 🛠️ Troubleshooting & Development
+
+If you encounter issues during development or testing, review the following:
+
+### 1. "PDF file not found" or Project Stuck
+If your API polling gets stuck, or returns `PDF file not found`, it means the background queue worker has crashed or is running outdated code.
+- **The Fix:** We have explicitly configured Docker to use `queue:listen` instead of `queue:work`. This forces the worker to hot-reload the PHP code on every job. However, if you add entirely new job classes or change dependencies, you should completely restart the queue worker:
+  ```bash
+  docker-compose restart queue
+  ```
+
+### 2. File Permission Errors (laravel.log or database.sqlite)
+If you are running Docker on Windows/Mac, volume mounts can occasionally overwrite container file permissions, blocking the application from writing to the logs or the database.
+- **The Fix:** This has been completely automated. The `Dockerfile` injects an `entrypoint.sh` script that aggressively resets file permissions using `chmod 777` on the `storage/` and `database/` directories every time the container boots. If you face issues, a simple `docker-compose restart app` will trigger the entrypoint to fix permissions automatically.

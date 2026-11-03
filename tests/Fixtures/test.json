@@ -1,0 +1,14 @@
+{
+    "questions": [
+        {
+            "id": "q1",
+            "text": "What is 2 + 2?",
+            "options": ["3", "4", "5", "6"]
+        },
+        {
+            "id": "q2",
+            "text": "Solve for x: <math><mi>x</mi><mo>=</mo><mn>10</mn></math>",
+            "options": ["5", "10", "15", "20"]
+        }
+    ]
+}

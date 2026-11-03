@@ -1,0 +1,10 @@
+FROM gotenberg/gotenberg:8
+
+USER root
+
+# Install Persian, Arabic, and Microsoft core fonts
+RUN apt-get update && \
+    apt-get install -y fonts-noto fonts-noto-core fonts-noto-extra fonts-noto-ui-core fonts-noto-ui-extra fonts-hosny-amiri fontconfig && \
+    fc-cache -f -v
+
+USER gotenberg

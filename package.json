@@ -1,5 +1,8 @@
 {
     "$schema": "https://www.schemastore.org/package.json",
+    "name": "secure-question-renderer",
+    "version": "0.1.0",
+    "description": "An enterprise-grade, secure, and scalable backend solution for converting question sets into aggressively protected, anti-OCR PDF files.",
     "private": true,
     "type": "module",
     "scripts": {
@@ -12,5 +15,8 @@
         "laravel-vite-plugin": "^3.1",
         "tailwindcss": "^4.0.0",
         "vite": "^8.0.0"
+    },
+    "dependencies": {
+        "puppeteer": "^25.3.0"
     }
 }
